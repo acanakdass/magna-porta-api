@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
-import { airwallexConfig } from '../config';
 import { AwAuthService } from './aw-auth.service';
 import { 
   AwTransfer, 
@@ -9,6 +8,7 @@ import {
   AwTransferCreateRequest,
   AwTransferCreateResponse
 } from '../dtos/aw-transfers-dtos';
+import { airwallexConfig } from '../config';
 
 @Injectable()
 export class AwTransfersService {
@@ -177,8 +177,8 @@ export class AwTransfersService {
           headers['x-sca-token'] = data.scaToken;
         }
         
-        const response = await this.client.request({
-          url: `${airwallexConfig.baseUrl}/api/v1/transfers/create`,
+                         const response = await this.client.request({
+                   url: `${airwallexConfig.baseUrl}/api/v1/transfers/create`,
           method: 'post',
           headers,
           data: requestData,

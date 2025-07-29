@@ -63,11 +63,10 @@ export class AwConnectedAccountsService {
                     },
                     validateStatus: (status) => status === 200, // Only consider 200 status code as success
                 });
-
                 // If we received a valid response and data.items exists
                 if (response.data && Array.isArray(response.data.items)) {
                     console.log('Connected Accounts successfully retrieved:', response.data.items.length);
-                    return response.data;
+                    // return response.data;
                     return {
                         data: response.data,
                         message: "success",
@@ -79,7 +78,7 @@ export class AwConnectedAccountsService {
                 }
             } catch (error: any) {
                 lastError = error;
-
+                console.log("error: " + error)
                 // Log error details
                 console.error('Error retrieving connected accounts:', {
                     message: error.message + " " + error.response?.data?.message,

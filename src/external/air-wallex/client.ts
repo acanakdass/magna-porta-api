@@ -8,8 +8,8 @@ export class AirwallexClient {
   private baseUrl: string;
   
   constructor() {
-    this.baseUrl = airwallexConfig.baseUrl;
   }
+  
   /**
    * Get the headers required for Airwallex API requests
    * @param onBehalfOf Optional parameter for acting on behalf of another user
@@ -28,6 +28,10 @@ export class AirwallexClient {
   async getToken():Promise<AwAuthResponse>{
     const axiosInstance = axios.create({ timeout: 10000 });
 
+    console.log('baseUrl', airwallexConfig.baseUrl);
+    console.log('apiKey', airwallexConfig.apiKey);
+    console.log('clientId', airwallexConfig.clientId);
+    
     const response = await axiosInstance.post<AwAuthResponse>(
         `${airwallexConfig.baseUrl}/api/v1/authentication/login`,
         {},

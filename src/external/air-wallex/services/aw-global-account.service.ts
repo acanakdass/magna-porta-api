@@ -151,6 +151,10 @@ export class AwGlobalAccountService {
                 request_id: data.request_id || uuidv4()
             };
             
+            const isProd = process.env.NODE_ENV === 'production';
+            const baseUrl = isProd 
+              ? (process.env.AW_BASE_URL_PROD || 'https://api.airwallex.com')
+              : (process.env.AW_BASE_URL_DEMO || 'https://api.airwallex.com');
             console.log(`Making Global Account Create API request to: ${airwallexConfig.baseUrl}/api/v1/global_accounts/create`);
             console.log('Request data:', JSON.stringify(requestData, null, 2));
 
@@ -224,6 +228,11 @@ export class AwGlobalAccountService {
                 throw new UnauthorizedException('Authentication token is null or undefined');
             }
             console.log('Token obtained successfully');
+
+            const isProd = process.env.NODE_ENV === 'production';
+            const baseUrl = isProd 
+              ? (process.env.AW_BASE_URL_PROD || 'https://api.airwallex.com')
+              : (process.env.AW_BASE_URL_DEMO || 'https://api.airwallex.com');
 
             console.log(`Making Airwallex API request for account ID ${globalAccountId}`);
 

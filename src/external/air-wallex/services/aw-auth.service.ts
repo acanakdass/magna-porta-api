@@ -4,7 +4,6 @@ import {AirwallexClient} from "../client";
 import {BaseApiResponse} from "../../../common/dto/api-response-dto";
 import {AwAuthorizeResponse} from "../dtos/aw-auth-dtos/aw-authorization-response";
 import {generatePKCEPair} from "../../helpers/hashing-helper";
-import {airwallexConfig} from "../config";
 
 
 // Server-side token cache

@@ -26,11 +26,7 @@ export class AwAccountController {
     ): Promise<BaseApiResponse<AwAccountCreationResponse>> {
         try {
             const result = await this.accountService.createAccount(accountData);
-            return {
-                success: true,
-                data: result,
-                message: 'Account created successfully'
-            } as BaseApiResponse<AwAccountCreationResponse>;
+            return result;
         } catch (error: any) {
             return {
                 success: false,

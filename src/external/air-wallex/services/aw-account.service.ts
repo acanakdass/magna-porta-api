@@ -1,67 +1,99 @@
-import {Injectable} from "@nestjs/common";
-import {AirwallexClient} from "../client";
-import {AwAccountCreationRequest} from "../dtos/aw-account-dtos/aw-account-creation-request";
-import {AwAccountCreationResponse} from "../dtos/aw-account-dtos/aw-account-creation-response";
-import axios from "axios";
-import {airwallexConfig} from "../config";
-import {AwAuthService} from "./aw-auth.service";
+import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import axios, { AxiosRequestConfig } from 'axios';
+import { airwallexConfig } from '../config';
+import { AwAuthService } from "./aw-auth.service";
+import { BaseApiResponse } from "../../../common/dto/api-response-dto";
+import { v4 as uuidv4 } from 'uuid';
+import { AwAccountCreationRequest } from "../dtos/aw-account-dtos/aw-account-creation-request";
+import { AwAccountCreationResponse } from "../dtos/aw-account-dtos/aw-account-creation-response";
 
-/**
- * Service for creating and managing Airwallex accounts
- */
 @Injectable()
 export class AwAccountService {
 
-    private client: AirwallexClient;
+    constructor(private readonly authService: AwAuthService) {}
 
-    constructor(private awAuthService: AwAuthService) {
-        this.client = new AirwallexClient();
-    }
-
-    async createAccount(accountData: AwAccountCreationRequest): Promise<AwAccountCreationResponse> {
+    /**
+     * Create a new account
+     * @param data The account creation request data
+     * @param accountId Optional account ID to use for the request
+     * @returns Account creation response
+     */
+    async createAccount(
+        data: AwAccountCreationRequest, 
+        accountId?: string
+    ): Promise<BaseApiResponse<AwAccountCreationResponse>> {
         try {
-            // Get a fresh authentication token to ensure it's valid
-            const token = await this.awAuthService.getAuthToken({onBehalfOf: undefined,forceNew: true});
+            console.log('=== Starting Account Create API Call ===');
 
-            console.log('Creating Airwallex account with data:', accountData);
-
-            // Add service_agreement_type if not provided
-            if (!accountData.customer_agreements?.terms_and_conditions?.service_agreement_type) {
-                accountData.customer_agreements.terms_and_conditions.service_agreement_type = 'FULL';
+            // Retrieve the authentication token
+            console.log('Retrieving auth token...');
+            const token = await this.authService.getAuthToken({ forceNew: false });
+            if (!token) {
+                throw new UnauthorizedException('Authentication token is null or undefined');
             }
+            console.log('Token obtained successfully');
 
-            // Create a direct API call with the token
-            const response = await  axios.request({
+            // Ensure request has a unique ID
+            const requestData = {
+                ...data
+            };
+            
+            console.log(`Making Account Create API request to: ${airwallexConfig.baseUrl}/api/v1/accounts/create`);
+            console.log('Request data:', JSON.stringify(requestData, null, 2));
+
+            // Prepare Axios request options
+            const options: AxiosRequestConfig = {
                 url: `${airwallexConfig.baseUrl}/api/v1/accounts/create`,
                 method: 'post',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                data: accountData,
-            });
+                data: requestData,
+            };
 
+            // Add service_agreement_type if not provided
+            if (!requestData.customer_agreements?.terms_and_conditions?.service_agreement_type) {
+                requestData.customer_agreements.terms_and_conditions.service_agreement_type = 'FULL';
+            }
+
+            // Make the API call
+            const response = await axios(options);
             console.log('Account created successfully:', {
                 id: response.data.id,
                 status: response.data.status
             });
 
-            return response.data;
+            return {
+                success: true,
+                message: 'Account created successfully',
+                data: response.data,
+            };
         } catch (error: any) {
             console.error('Error creating Airwallex account:', error.response?.data || error.message);
-            throw error;
+            if (error.response?.status === 401) {
+                throw new UnauthorizedException('Authentication failed. Please check your credentials.');
+            }
+            throw new InternalServerErrorException('Failed to create Airwallex account.');
         }
     }
 
     async getAccount(accountId: string): Promise<any> {
         try {
-            return await this.client.get<any>(`/api/v1/accounts/${accountId}`);
+            const token = await this.authService.getAuthToken({ forceNew: false });
+            
+            const response = await axios.get(`${airwallexConfig.baseUrl}/api/v1/accounts/${accountId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                }
+            });
+            
+            return response.data;
         } catch (error: any) {
             console.error('Error retrieving Airwallex account:', error.response?.data || error.message);
             throw error;
         }
     }
-
 }
 
 

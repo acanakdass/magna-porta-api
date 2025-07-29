@@ -29,7 +29,6 @@ src/external/air-wallex/config.ts
 *~
 
 # Logs
-logs/
 *.log
 
 # Runtime data

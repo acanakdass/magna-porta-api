@@ -108,6 +108,7 @@ export class AuthService {
 
         try {
             const awResponse = await this.awAccountService.createAccount(accountCreationRequest);
+            console.log(awResponse);
             if(awResponse.success){
                 airwallexAccountId = awResponse.data.id;
             }else{

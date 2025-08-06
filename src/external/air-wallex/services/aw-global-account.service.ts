@@ -136,7 +136,7 @@ export class AwGlobalAccountService {
     ): Promise<BaseApiResponse<AwGlobalAccountCreateResponse>> {
         try {
             console.log('=== Starting Global Account Create API Call ===');
-
+console.log(data)
             // Retrieve the authentication token
             console.log('Retrieving auth token...');
             const token = await this.authService.getAuthToken({ forceNew: false });
@@ -150,7 +150,8 @@ export class AwGlobalAccountService {
                 ...data,
                 request_id: data.request_id || uuidv4()
             };
-            
+            console.log("requestData")
+            console.log(requestData)
             const isProd = process.env.NODE_ENV === 'production';
             const baseUrl = isProd 
               ? (process.env.AW_BASE_URL_PROD || 'https://api.airwallex.com')

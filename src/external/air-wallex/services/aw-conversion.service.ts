@@ -67,6 +67,7 @@ export class AwConversionService {
                 },
                 validateStatus: (status) => status === 200,
             };
+            console.log(`${airwallexConfig.baseUrl}/api/v1/fx/conversions${queryString}`)
 
             // Make the API request
             const response = await axios.request(options);
@@ -260,7 +261,8 @@ export class AwConversionService {
                 data: requestData,
                 validateStatus: (status) => status === 201 || status === 200
             };
-
+console.log("requestDataaaaa")
+console.log(requestData)
             // Make the API request
             const response = await axios.request(options);
 

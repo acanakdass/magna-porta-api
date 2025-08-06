@@ -28,6 +28,7 @@ export class AwAccountService {
             // Retrieve the authentication token
             console.log('Retrieving auth token...');
             const token = await this.authService.getAuthToken({ forceNew: false });
+            console.log(token)
             if (!token) {
                 throw new UnauthorizedException('Authentication token is null or undefined');
             }

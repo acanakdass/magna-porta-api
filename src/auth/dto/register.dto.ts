@@ -27,11 +27,4 @@ export class RegisterDto {
   @ApiProperty({ description: 'Company Name', example: 'XYZ Tech Company' })
   @IsString()
   companyName?: string;
-
-  @ApiProperty({ description: 'Role Id of the user', example: '1' })
-  @IsNotEmpty()
-  roleId: number;
-
-
-
 }

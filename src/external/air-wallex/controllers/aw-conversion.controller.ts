@@ -47,12 +47,10 @@ export class AwConversionController {
         type: BaseApiResponse<AwConversionCreateResponse>
     })
     @ApiBody({ type: AwConversionCreateRequest })
-    @ApiQuery({ name: 'account_id', required: false, description: 'Account ID for the conversion' })
     async createConversion(
-        @Body() conversionData: Omit<AwConversionCreateRequest, 'request_id'>,
-        @Query('account_id') accountId?: string
+        @Body() conversionData: AwConversionCreateRequest
     ): Promise<BaseApiResponse<AwConversionCreateResponse>> {
-        return await this.conversionService.createConversion(conversionData, accountId);
+        return await this.conversionService.createConversion(conversionData);
     }
 
     @Get(':conversionId')

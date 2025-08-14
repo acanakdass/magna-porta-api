@@ -12,6 +12,7 @@ import {CompaniesService} from "../company/companies.service";
 import {CompanyEntity} from "../company/company.entity";
 import {CreateCompanyDto} from "../company/dtos/create-company-dto";
 import { LoginResponseDto } from './dto/login-response.dto';
+import { ConflictException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -50,30 +51,20 @@ export class AuthService {
         };
     }
 
-    async registerold(createUserDto: RegisterDto): Promise<BaseApiResponse<RegisterResponseDto>> {
-        const role = await this.rolesService.findOne(createUserDto.roleId);
-
-        if (!role) {
-            throw new Error('Role not found');
-        }
-        let createRes = await this.usersService.createUser({
-            ...createUserDto,
-            roleEntity: role,
-        });
-
-        return {
-            message: "Register Success",
-            success: true,
-            data: {
-                email: createRes.email,
-                roleName: role.name
-            }
-        };
-    }
+   
 
     async register(createUserDto: RegisterDto): Promise<BaseApiResponse<RegisterResponseDto>> {
+
+        const companyExists = await this.companyService.findOneDynamic({name:createUserDto.companyName});
+        const userWithPhoneExists = await this.usersService.findOneDynamic({phoneNumber:createUserDto.phoneNumber});
+        if(companyExists){
+            throw new ConflictException(`Company with name '${createUserDto.companyName}' already exists`);
+        }
+        if(userWithPhoneExists){
+            throw new ConflictException(`User with phone '${createUserDto.phoneNumber}' already exists`);
+        }
         // Check if role exists
-        const role = await this.rolesService.findOne(createUserDto.roleId);
+        const role = await this.rolesService.findOneDynamic({key:"customer"});
 
         if (!role) {
             throw new Error('Role not found');
@@ -117,41 +108,53 @@ export class AuthService {
             console.log('Airwallex account created successfully:', airwallexAccountId);
         } catch (awError) {
             console.error('Error creating Airwallex account:', awError.message);
-            throw new Error('Failed to create Airwallex account');
+            throw new Error(`Failed to create Airwallex account: ${awError.message}`);
         }
 
         let createdCompany:CompanyEntity=null;
         try {
+            console.log('Creating company...');
+            console.log(airwallexAccountId,createUserDto.companyName);
             const companyToCreate :CreateCompanyDto={
                 name:createUserDto.companyName,
                 airwallex_account_id:airwallexAccountId
             }
             var companyCreateRes = await this.companyService.createCompany(companyToCreate);
+            console.log(companyCreateRes);
             createdCompany = companyCreateRes.data;
             console.log('Company created successfully:', createdCompany);
         }catch (err){
-            console.error('Error creating Airwallex account:', err.message);
+            console.error('Error creating company:', err.message);
+            if (err instanceof ConflictException) {
+                throw new ConflictException(`Company with name '${createUserDto.companyName}' already exists`);
+            }
             throw new Error('Failed to create Company Record');
         }
 
-
         // Create the user in the local database
-        const createRes = await this.usersService.createUser({
-            ...createUserDto,
-            password: createUserDto.password,
-            roleEntity: role,
-            companyId:createdCompany.id
-        });
+        try {
+            const createRes = await this.usersService.createUser({
+                ...createUserDto,
+                password: createUserDto.password,
+                roleEntity: role,
+                isActive:true,
+                companyId:createdCompany.id
+            });
 
-        return {
-            message: "Register Success",
-            success: true,
-            data: {
-                email: createRes.email,
-                roleName: role.name
-                 // airwallexAccountId // Return the Airwallex account ID with the response
-            }
-        };
+            return {
+                message: "Register Success",
+                success: true,
+                data: {
+                    email: createRes.email,
+                    roleName: role.name,
+                    company:createdCompany
+                     // airwallexAccountId // Return the Airwallex account ID with the response
+                }
+            };
+        } catch (userError) {
+            console.error('Error creating user:', userError.message);
+            throw userError;
+        }
     }
 
 }

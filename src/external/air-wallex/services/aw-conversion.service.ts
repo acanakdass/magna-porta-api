@@ -219,12 +219,10 @@ export class AwConversionService {
     /**
      * Create a new conversion
      * @param params Conversion creation parameters
-     * @param accountId Optional account ID to use for the request
      * @returns Conversion creation response
      */
     async createConversion(
-        params: Omit<AwConversionCreateRequest, 'request_id'>, 
-        accountId?: string
+        params: AwConversionCreateRequest
     ): Promise<BaseApiResponse<AwConversionCreateResponse>> {
         try {
             console.log('=== Starting Conversion Create API Call ===');
@@ -256,7 +254,7 @@ export class AwConversionService {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'x-on-behalf-of': accountId
+                    'x-on-behalf-of': params.account_id
                 },
                 data: requestData,
                 validateStatus: (status) => status === 201 || status === 200

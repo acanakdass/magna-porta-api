@@ -9,6 +9,8 @@ import {RolesModule} from "./role/roles.module";
 import {ExternalModule} from "./external/external.module";
 import {CompaniesModule} from "./company/companies.module";
 import {CurrencyModule} from "./currency/currency.module";
+import {WebhookModule} from "./webhook/webhook.module";
+import {MailModule} from "./mail/mail.module";
 import {APP_FILTER} from "@nestjs/core";
 import {GlobalHttpExceptionFilter} from "./common/filters/global-http-exception.filter";
 import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
@@ -40,7 +42,9 @@ import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
         PermissionModule,
         RolesModule,
         CompaniesModule,
-        CurrencyModule
+        CurrencyModule,
+        WebhookModule,
+        MailModule
     ],
 })
 export class AppModule {

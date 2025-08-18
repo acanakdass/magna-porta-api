@@ -91,3 +91,4 @@ temp/
 
 # Optional stylelint cache
 .stylelintcache
+src/mail/README.md

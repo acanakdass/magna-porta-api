@@ -24,6 +24,7 @@
     "class-validator": "^0.14.0",
     "h3": "^1.15.3",
     "js-base64": "^3.7.7",
+    "nodemailer": "^7.0.5",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.11.3",

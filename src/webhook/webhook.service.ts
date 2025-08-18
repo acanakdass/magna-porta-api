@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Webhook } from '../entities/webhook.entity';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { WebhookDataParserService } from './services/webhook-data-parser.service';
+import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
 
 @Injectable()
 export class WebhookService {
@@ -120,5 +121,22 @@ export class WebhookService {
         webhook.dataJson
       )
     }));
+  }
+
+  /**
+   * Mail gönderilmemiş webhook'ları getirir
+   */
+  async findUnsentMailWebhooks(): Promise<Webhook[]> {
+    return await this.webhookRepository.find({
+      where: { isMailSent: false },
+      order: { receivedAt: 'ASC' },
+    });
+  }
+
+  /**
+   * Webhook'un mail gönderildi olarak işaretler
+   */
+  async markMailAsSent(webhookId: number): Promise<void> {
+    await this.webhookRepository.update(webhookId, { isMailSent: true });
   }
 }

@@ -3,12 +3,16 @@ import { WebhookService } from './webhook.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { Webhook } from '../entities/webhook.entity';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
 
 @ApiTags('webhooks')
 @Controller('webhooks')
 export class WebhookController {
-  constructor(private readonly webhookService: WebhookService) {}
+  constructor(
+    private readonly webhookService: WebhookService,
+    private readonly webhookMailSchedulerService: WebhookMailSchedulerService,
+  ) {}
 
   @Post('receive')
   @ApiOperation({ summary: 'Webhook endpoint - external services tarafından çağrılır' })
@@ -115,6 +119,35 @@ export class WebhookController {
         webhook.webhookName,
         webhook.dataJson
       )
+    }));
+  }
+
+  // ===== MAIL SCHEDULER ENDPOINTS =====
+
+  @Post('trigger-mail-process')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Webhook mail işlemini manuel olarak tetikle' })
+  @ApiResponse({ status: 200, description: 'Mail işlemi başarıyla tetiklendi' })
+  async triggerMailProcess(): Promise<{ message: string }> {
+    await this.webhookMailSchedulerService.triggerWebhookMailProcess();
+    return { message: 'Webhook mail işlemi tetiklendi' };
+  }
+
+  @Get('mail-status')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Mail gönderilmemiş webhook\'ları listele' })
+  @ApiResponse({ status: 200, description: 'Mail durumu başarıyla getirildi' })
+  async getMailStatus(): Promise<any[]> {
+    const unsentWebhooks = await this.webhookService.findUnsentMailWebhooks();
+    
+    return unsentWebhooks.map(webhook => ({
+      id: webhook.id,
+      webhookName: webhook.webhookName,
+      accountId: webhook.accountId,
+      receivedAt: webhook.receivedAt,
+      isMailSent: webhook.isMailSent
     }));
   }
 }

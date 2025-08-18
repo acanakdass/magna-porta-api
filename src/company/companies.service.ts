@@ -45,4 +45,14 @@ export class CompaniesService extends BaseService<CompanyEntity> {
             result.success = false;
         return result;
     }
+
+    /**
+     * Airwallex account_id ile company bulur
+     */
+    async findByAirwallexAccountId(accountId: string): Promise<CompanyEntity | null> {
+        return await this.repo.findOne({
+            where: { airwallex_account_id: accountId },
+            relations: ['users'],
+        });
+    }
 }

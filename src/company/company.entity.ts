@@ -12,7 +12,7 @@ export class CompanyEntity extends BaseEntity {
   @Column({ unique: true })
   name!: string;
 
-  @OneToMany(() => UserEntity, (user) => user.role)
+  @OneToMany(() => UserEntity, (user) => user.company)
   users!: UserEntity[];
 
   @Column({ default: false })

@@ -23,4 +23,7 @@ export class Webhook extends BaseEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @Column({ name: 'is_mail_sent', type: 'boolean', default: false })
+  isMailSent: boolean;
 }

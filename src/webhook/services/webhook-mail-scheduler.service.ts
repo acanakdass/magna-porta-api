@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { WebhookService } from '../webhook.service';
 import { MailService } from '../../mail/mail.service';
 import { CompaniesService } from '../../company/companies.service';
+import { EmailTemplatesService, TransferNotificationData } from '../../mail/email-templates.service';
 
 @Injectable()
 export class WebhookMailSchedulerService {
@@ -16,6 +17,7 @@ export class WebhookMailSchedulerService {
     private readonly mailService: MailService,
     private readonly companiesService: CompaniesService,
     private readonly configService: ConfigService,
+    private readonly emailTemplatesService: EmailTemplatesService,
   ) {
     // Logo URL'ini environment'dan al, fallback olarak production URL
     this.LOGO_URL = this.configService.get('LOGO_URL', 'http://209.38.223.41:3001/assets/magnaporta-logos/logo_magna_porta.png');
@@ -24,7 +26,7 @@ export class WebhookMailSchedulerService {
   /**
    * Her dakika çalışır ve mail gönderilmemiş webhook'ları kontrol eder
    */
-  //@Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_10_SECONDS)
   async processUnsentWebhooks() {
     try {
       this.logger.log('Webhook mail kontrolü başlatıldı...');
@@ -129,18 +131,6 @@ export class WebhookMailSchedulerService {
    * Webhook email içeriği oluşturur
    */
   private generateWebhookEmailContent(webhook: any, company?: any): string {
-    const receivedTime = new Date(webhook.receivedAt).toLocaleString('tr-TR');
-    const companyInfo = company ? `
-          <div class="field">
-            <span class="label">Company:</span>
-            <span class="value">${company.name}</span>
-          </div>
-          <div class="field">
-            <span class="label">Company ID:</span>
-            <span class="value">${company.id}</span>
-          </div>
-    ` : '';
-
     // Webhook name'e göre özelleştirilmiş içerik
     const customContent = this.generateCustomWebhookContent(webhook);
     
@@ -149,69 +139,143 @@ export class WebhookMailSchedulerService {
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Webhook Bildirimi</title>
+        <title>Magna Porta Notification</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { background-color: #f8f9fa; padding: 15px; border-radius: 5px; }
-          .custom-content { background-color: #e3f2fd; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #2196f3; }
-          .content { margin: 20px 0; }
-          .field { margin: 10px 0; }
-          .label { font-weight: bold; color: #495057; }
-          .value { color: #212529; }
-          .data-section { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; }
-          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 12px; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f8f9fa; 
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: #ffffff; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+          }
+          .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            padding: 50px 20px; 
+            text-align: center; 
+            color: white; 
+            border-radius: 0 0 20px 20px;
+          }
+          .logo { 
+            max-width: 200px; 
+            height: auto; 
+            margin-bottom: 0; 
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+          }
+          .content { 
+            padding: 40px 30px; 
+            background-color: #ffffff; 
+          }
+          .notification-card { 
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+            color: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            margin: 20px 0; 
+            text-align: center; 
+          }
+          .footer { 
+            background-color: #f8f9fa; 
+            padding: 30px; 
+            text-align: center; 
+            color: #6c757d; 
+            font-size: 14px; 
+          }
+          h1 { margin: 0; font-size: 28px; font-weight: 600; }
+          h2 { margin: 0 0 15px 0; font-size: 24px; font-weight: 600; }
+          p { margin: 0 0 15px 0; line-height: 1.6; }
+          .highlight { 
+            background-color: #e3f2fd; 
+            padding: 20px; 
+            border-radius: 8px; 
+            border-left: 4px solid #2196f3; 
+            margin: 20px 0; 
+          }
+          .transaction-details {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 25px 0;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+          }
+          .transaction-details h3 {
+            margin: 0 0 20px 0;
+            color: #495057;
+            font-size: 20px;
+            text-align: center;
+          }
+          .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+          }
+          .detail-item {
+            background-color: white;
+            padding: 18px 15px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+          }
+          .detail-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+          }
+          .detail-label {
+            display: block;
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
+            font-weight: 500;
+          }
+          .detail-value {
+            display: block;
+            font-size: 15px;
+            font-weight: 600;
+            color: #212529;
+            line-height: 1.3;
+          }
+          .detail-value.success {
+            color: #28a745;
+            font-weight: 700;
+          }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <img src="http://localhost:3001/assets/magnaporta-logos/logo_magna_porta.png" 
+        <div class="container">
+          <div class="header">
+            <img src="${this.LOGO_URL}" 
                  alt="Magna Porta" 
-                 style="max-width: 200px; height: auto; border-radius: 8px;">
-          </div>
-          <h2>🚀 New Webhook Notification</h2>
-          <p>New webhook received at Magna Porta API</p>
-        </div>
-        
-        ${customContent}
-        
-        <div class="content">
-          <div class="field">
-            <span class="label">Webhook ID:</span>
-            <span class="value">${webhook.webhookId}</span>
+                 class="logo">
           </div>
           
-          <div class="field">
-            <span class="label">Webhook Name:</span>
-            <span class="value">${webhook.webhookName}</span>
+          <div class="content">
+            ${this.generateMinimalWebhookContent(webhook)}
+            
+            <div class="highlight">
+              <p><strong>Transaction Time:</strong> ${new Date(webhook.receivedAt).toLocaleString('en-US')}</p>
+              <p><strong>Reference No:</strong> ${webhook.webhookId}</p>
+            </div>
+            
+            <div class="transaction-details">
+              <h3>📋 Transaction Details</h3>
+              ${this.generateTransactionDetails(webhook)}
+            </div>
           </div>
           
-          <div class="field">
-            <span class="label">Account ID:</span>
-            <span class="value">${webhook.accountId}</span>
+          <div class="footer">
+            <p>This is an automated notification from Magna Porta</p>
+            <p>Please do not reply to this email</p>
           </div>
-          
-          ${companyInfo}
-          
-          <div class="field">
-            <span class="label">Alınma Zamanı:</span>
-            <span class="value">${receivedTime}</span>
-          </div>
-          
-          <div class="field">
-            <span class="label">Oluşturulma Zamanı:</span>
-            <span class="value">${new Date(webhook.createdAt).toLocaleString('tr-TR')}</span>
-          </div>
-        </div>
-        
-        <div class="data-section">
-          <h3>📊 Webhook Data</h3>
-          <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto;">${JSON.stringify(webhook.dataJson, null, 2)}</pre>
-        </div>
-        
-        <div class="footer">
-          <p>Bu mail otomatik olarak gönderilmiştir.</p>
-          <p>Magna Porta API - Webhook Notification Service</p>
         </div>
       </body>
       </html>
@@ -484,6 +548,1427 @@ export class WebhookMailSchedulerService {
   }
 
   /**
+   * Normal kullanıcılar için minimal webhook content
+   */
+  private generateMinimalWebhookContent(webhook: any): string {
+    const data = webhook.dataJson;
+    
+    switch (webhook.webhookName) {
+      case 'payout_transfer_funding_funded':
+        return this.generatePaymentReceivedTemplate(data);
+      case 'connected_account_transfer':
+        return this.generateTransferCompletedTemplate(data);
+      case 'conversion':
+        return this.generateConversionCompletedTemplate(data);
+      case 'transfer':
+        return this.generateTransferProcessedTemplate(data);
+      default:
+        return this.generateDefaultWebhookTemplate(webhook.webhookName);
+    }
+  }
+
+  /**
+   * Payment received template - beautiful design like the image
+   */
+  private generatePaymentReceivedTemplate(data: any): string {
+    const amount = data.amount || 0;
+    const currency = data.currency || 'USD';
+    const transactionId = data.transaction_id || data.id || 'N/A';
+    const date = new Date().toISOString().split('T')[0];
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="tr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Ödeme Alındı</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+          }
+          
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+          }
+          
+          .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #ff6b35;
+            border-radius: 8px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+          }
+          
+          .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+          }
+          
+          .main-heading {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: white;
+          }
+          
+          .sub-heading {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+          }
+          
+          .content {
+            padding: 40px 30px;
+          }
+          
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+          }
+          
+          .description {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.8;
+          }
+          
+          .summary-box {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+          }
+          
+          .summary-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+          }
+          
+          .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+          }
+          
+          .summary-item:last-child {
+            border-bottom: none;
+          }
+          
+          .summary-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+          }
+          
+          .summary-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+          }
+          
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+          }
+          
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+          }
+          
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+          }
+          
+          .footer-text {
+            font-size: 12px;
+            color: #6c757d;
+          }
+          
+          @media (max-width: 600px) {
+            .container {
+              margin: 10px;
+              border-radius: 8px;
+            }
+            
+            .header, .content {
+              padding: 20px;
+            }
+            
+            .main-heading {
+              font-size: 24px;
+            }
+            
+            .summary-box {
+              padding: 20px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">
+              <div class="logo-icon">🏠</div>
+              <div class="logo-text">Magna Porta</div>
+            </div>
+            <h1 class="main-heading">Ödeme Başarıyla Alındı!</h1>
+            <p class="sub-heading">Hesabınız kredilendi</p>
+          </div>
+          
+          <div class="content">
+            <p class="greeting">Merhaba,</p>
+            <p class="description">
+              Harika haber! Hesabınıza <strong>${amount} ${currency}</strong> tutarında ödeme alındı.<br>
+              İşte bu işlemin özeti:
+            </p>
+            
+            <div class="summary-box">
+              <h3 class="summary-title">İşlem Özeti</h3>
+              
+              <div class="summary-item">
+                <span class="summary-label">İşlem Türü:</span>
+                <span class="summary-value">Ödeme Alındı</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Tutar:</span>
+                <span class="summary-value">${amount} ${currency}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">İşlem ID:</span>
+                <span class="summary-value">${transactionId}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Tarih:</span>
+                <span class="summary-value">${date}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Durum:</span>
+                <span class="summary-value">✅ Tamamlandı</span>
+              </div>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="#" class="cta-button">İşlemi Görüntüle</a>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p class="footer-text">
+              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Transfer completed template
+   */
+  private generateTransferCompletedTemplate(data: any): string {
+    const amount = data.amount || 0;
+    const currency = data.currency || 'USD';
+    const transactionId = data.transaction_id || data.id || 'N/A';
+    const date = new Date().toISOString().split('T')[0];
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="tr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Transfer Tamamlandı</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+          }
+          
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+          }
+          
+          .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #ff6b35;
+            border-radius: 8px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+          }
+          
+          .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+          }
+          
+          .main-heading {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: white;
+          }
+          
+          .sub-heading {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+          }
+          
+          .content {
+            padding: 40px 30px;
+          }
+          
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+          }
+          
+          .description {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.8;
+          }
+          
+          .summary-box {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+          }
+          
+          .summary-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+          }
+          
+          .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+          }
+          
+          .summary-item:last-child {
+            border-bottom: none;
+          }
+          
+          .summary-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+          }
+          
+          .summary-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+          }
+          
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+          }
+          
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
+          }
+          
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+            margin-top: 20px;
+          }
+          
+          .footer-text {
+            font-size: 12px;
+            color: #6c757d;
+          }
+          
+          @media (max-width: 600px) {
+            .container {
+              margin: 10px;
+              border-radius: 8px;
+            }
+            
+            .header, .content {
+              padding: 20px;
+            }
+            
+            .main-heading {
+              font-size: 24px;
+            }
+            
+            .summary-box {
+              padding: 20px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">
+              <div class="logo-icon">🏠</div>
+              <div class="logo-text">Magna Porta</div>
+            </div>
+            <h1 class="main-heading">Transfer Başarıyla Tamamlandı!</h1>
+            <p class="sub-heading">Transferiniz işlendi</p>
+          </div>
+          
+          <div class="content">
+            <p class="greeting">Merhaba,</p>
+            <p class="description">
+              <strong>${amount} ${currency}</strong> tutarındaki transferiniz başarıyla tamamlandı.<br>
+              İşte bu işlemin özeti:
+            </p>
+            
+            <div class="summary-box">
+              <h3 class="summary-title">Transfer Özeti</h3>
+              
+              <div class="summary-item">
+                <span class="summary-label">Transfer Türü:</span>
+                <span class="summary-value">Bağlı Hesap Transferi</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Tutar:</span>
+                <span class="summary-value">${amount} ${currency}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">İşlem ID:</span>
+                <span class="summary-value">${transactionId}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Tarih:</span>
+                <span class="summary-value">${date}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Durum:</span>
+                <span class="summary-value">✅ Tamamlandı</span>
+              </div>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="#" class="cta-button">Transferi Görüntüle</a>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p class="footer-text">
+              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Conversion completed template
+   */
+  private generateConversionCompletedTemplate(data: any): string {
+    const sourceAmount = data.source_amount || 0;
+    const sourceCurrency = data.source_currency || 'USD';
+    const targetAmount = data.target_amount || 0;
+    const targetCurrency = data.target_currency || 'EUR';
+    const rate = data.rate || 0;
+    const transactionId = data.transaction_id || data.id || 'N/A';
+    const date = new Date().toISOString().split('T')[0];
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="tr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Döviz Çevirisi Tamamlandı</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+          }
+          
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+          }
+          
+          .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #ff6b35;
+            border-radius: 8px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+          }
+          
+          .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+          }
+          
+          .main-heading {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: white;
+          }
+          
+          .sub-heading {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+          }
+          
+          .content {
+            padding: 40px 30px;
+          }
+          
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+          }
+          
+          .description {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.8;
+          }
+          
+          .summary-box {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+          }
+          
+          .summary-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+          }
+          
+          .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 10px;
+          }
+          
+          .summary-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+          }
+          
+          .summary-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+          }
+          
+          .summary-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+          }
+          
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);
+          }
+          
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(111, 66, 193, 0.4);
+          }
+          
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+          }
+          
+          .footer-text {
+            font-size: 12px;
+            color: #6c757d;
+          }
+          
+          @media (max-width: 600px) {
+            .container {
+              margin: 10px;
+              border-radius: 8px;
+            }
+            
+            .header, .content {
+              padding: 20px;
+            }
+            
+            .main-heading {
+              font-size: 24px;
+            }
+            
+            .summary-box {
+              padding: 20px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">
+              <div class="logo-icon">🏠</div>
+              <div class="logo-text">Magna Porta</div>
+            </div>
+            <h1 class="main-heading">Döviz Çevirisi Tamamlandı!</h1>
+            <p class="sub-heading">Çeviriniz işlendi</p>
+          </div>
+          
+          <div class="content">
+            <p class="greeting">Merhaba,</p>
+            <p class="description">
+              Döviz çeviriniz başarıyla tamamlandı.<br>
+              İşte bu işlemin özeti:
+            </p>
+            
+            <div class="summary-box">
+              <h3 class="summary-title">Çeviri Özeti</h3>
+              
+              <div class="summary-item">
+                <span class="summary-label">Kaynak Tutar:</span>
+                <span class="summary-value">${sourceAmount} ${sourceCurrency}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Hedef Tutar:</span>
+                <span class="summary-value">${targetAmount} ${targetCurrency}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Döviz Kuru:</span>
+                <span class="summary-value">1 ${sourceCurrency} = ${rate} ${targetCurrency}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">İşlem ID:</span>
+                <span class="summary-value">${transactionId}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Tarih:</span>
+                <span class="summary-value">${date}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Durum:</span>
+                <span class="summary-value">✅ Tamamlandı</span>
+              </div>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="#" class="cta-button">Çeviriyi Görüntüle</a>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p class="footer-text">
+              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Transfer processed template
+   */
+  private generateTransferProcessedTemplate(data: any): string {
+    const amount = data.amount || 0;
+    const currency = data.currency || 'USD';
+    const sourceAccount = data.source_account || 'Bilinmiyor';
+    const destinationAccount = data.destination_account || 'Bilinmiyor';
+    const transactionId = data.transaction_id || data.id || 'N/A';
+    const date = new Date().toISOString().split('T')[0];
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="tr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Transfer İşlendi</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+          }
+          
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+          }
+          
+          .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #ff6b35;
+            border-radius: 8px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+          }
+          
+          .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+          }
+          
+          .main-heading {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: white;
+          }
+          
+          .sub-heading {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+          }
+          
+          .content {
+            padding: 40px 30px;
+          }
+          
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+          }
+          
+          .description {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.8;
+          }
+          
+          .summary-box {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+          }
+          
+          .summary-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+          }
+          
+          .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+          }
+          
+          .summary-item:last-child {
+            border-bottom: none;
+          }
+          
+          .summary-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+          }
+          
+          .summary-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+          }
+          
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);
+          }
+          
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(253, 126, 20, 0.4);
+          }
+          
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+          }
+          
+          .footer-text {
+            font-size: 12px;
+            color: #6c757d;
+          }
+          
+          @media (max-width: 600px) {
+            .container {
+              margin: 10px;
+              border-radius: 8px;
+            }
+            
+            .header, .content {
+              padding: 20px;
+            }
+            
+            .main-heading {
+              font-size: 24px;
+            }
+            
+            .summary-box {
+              padding: 20px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">
+              <div class="logo-icon">🏠</div>
+              <div class="logo-text">Magna Porta</div>
+            </div>
+            <h1 class="main-heading">Transfer Başarıyla İşlendi!</h1>
+            <p class="sub-heading">Transferiniz tamamlandı</p>
+          </div>
+          
+          <div class="content">
+            <p class="greeting">Merhaba,</p>
+            <p class="description">
+              <strong>${amount} ${currency}</strong> tutarındaki transfer başarıyla işlendi.<br>
+              İşte bu işlemin özeti:
+            </p>
+            
+            <div class="summary-box">
+              <h3 class="summary-title">Transfer Özeti</h3>
+              
+              <div class="summary-item">
+                <span class="summary-label">Transfer Türü:</span>
+                <span class="summary-value">Genel Transfer</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Tutar:</span>
+                <span class="summary-value">${amount} ${currency}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Kaynak Hesap:</span>
+                <span class="summary-value">${sourceAccount}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Hedef Hesap:</span>
+                <span class="summary-value">${destinationAccount}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">İşlem ID:</span>
+                <span class="summary-value">${transactionId}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Tarih:</span>
+                <span class="summary-value">${date}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Durum:</span>
+                <span class="summary-value">✅ Tamamlandı</span>
+              </div>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="#" class="cta-button">Transferi Görüntüle</a>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p class="footer-text">
+              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Default webhook template
+   */
+  private generateDefaultWebhookTemplate(webhookName: string): string {
+    const date = new Date().toISOString().split('T')[0];
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Account Update</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+          }
+          
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+          }
+          
+          .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          
+          .logo-icon {
+            width: 40px;
+            webhook-mail-scheduler.service.ts
+            background-color: #ff6b35;
+            border-radius: 8px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+          }
+          
+          .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+          }
+          
+          .main-heading {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: white;
+          }
+          
+          .sub-heading {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+          }
+          
+          .content {
+            padding: 40px 30px;
+          }
+          
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+          }
+          
+          .description {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.8;
+          }
+          
+          .summary-box {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+          }
+          
+          .summary-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+          }
+          
+          .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+          }
+          
+          .summary-item:last-child {
+            border-bottom: none;
+          }
+          
+          .summary-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+          }
+          
+          .summary-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+          }
+          
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+          }
+          
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+          }
+          
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+          }
+          
+          .footer-text {
+            font-size: 12px;
+            color: #6c757d;
+          }
+          
+          @media (max-width: 600px) {
+            .container {
+              margin: 10px;
+              border-radius: 8px;
+            }
+            
+            .header, .content {
+              padding: 20px;
+            }
+            
+            .main-heading {
+              font-size: 24px;
+            }
+            
+            .summary-box {
+              padding: 20px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">
+              <div class="logo-icon">🏠</div>
+              <div class="logo-text">Magna Porta</div>
+            </div>
+            <h1 class="main-heading">Hesap Güncellendi</h1>
+            <p class="sub-heading">Hesabınız güncellendi</p>
+          </div>
+          
+          <div class="content">
+            <p class="greeting">Merhaba,</p>
+            <p class="description">
+              Magna Porta hesabınız güncellendi.<br>
+              İşte bu güncellemenin özeti:
+            </p>
+            
+            <div class="summary-box">
+              <h3 class="summary-title">Güncelleme Özeti</h3>
+              
+              <div class="summary-item">
+                <span class="summary-label">Güncelleme Türü:</span>
+                <span class="summary-value">${webhookName}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Tarih:</span>
+                <span class="summary-value">${date}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Durum:</span>
+                <span class="summary-value">✅ Güncellendi</span>
+              </div>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="#" class="cta-button">Detayları Görüntüle</a>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p class="footer-text">
+              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Normal kullanıcılar için işlem detayları
+   */
+  private generateTransactionDetails(webhook: any): string {
+    const data = webhook.dataJson;
+    
+    switch (webhook.webhookName) {
+      case 'payout_transfer_funding_funded':
+        return `
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Amount Received</span>
+              <span class="detail-value">${data.amount || 0} ${data.currency || 'USD'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">From Account</span>
+              <span class="detail-value">${data.source_account || 'External Source'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">To Account</span>
+              <span class="detail-value">Your Main Account</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Reference</span>
+              <span class="detail-value">${data.reference || 'N/A'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value success">Successfully Received</span>
+            </div>
+          </div>
+        `;
+      case 'connected_account_transfer':
+        return `
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Transfer Amount</span>
+              <span class="detail-value">${data.amount || 0} ${data.currency || 'USD'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">From Account</span>
+              <span class="detail-value">${data.source_account || 'Source Account'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">To Account</span>
+              <span class="detail-value">${data.destination_account || 'Destination Account'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value success">${data.status || 'Completed'}</span>
+            </div>
+          </div>
+        `;
+      case 'conversion':
+        return `
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Converted From</span>
+              <span class="detail-value">${data.source_amount || 0} ${data.source_currency || 'USD'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Converted To</span>
+              <span class="detail-value">${data.target_amount || 0} ${data.target_currency || 'USD'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Exchange Rate</span>
+              <span class="detail-value">1 ${data.source_currency || 'USD'} = ${data.rate || 0} ${data.target_currency || 'USD'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value success">Successfully Converted</span>
+            </div>
+          </div>
+        `;
+      case 'transfer':
+        return `
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Transfer Amount</span>
+              <span class="detail-value">${data.amount || 0} ${data.currency || 'USD'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">From Account</span>
+              <span class="detail-value">${data.source_account || 'Source Account'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">To Account</span>
+              <span class="detail-value">${data.destination_account || 'Destination Account'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value success">${data.status || 'Successfully Processed'}</span>
+            </div>
+          </div>
+        `;
+      default:
+        return `
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Transaction Type</span>
+              <span class="detail-value">${webhook.webhookName}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value success">Successfully Completed</span>
+            </div>
+          </div>
+        `;
+    }
+  }
+
+  /**
    * Admin notification email content
    */
   private generateAdminNotificationContent(webhook: any, company: any, users: any[], emailAddresses: string[]): string {
@@ -589,29 +2074,29 @@ export class WebhookMailSchedulerService {
               ${users.map((user, index) => `
                 <li style="padding: 10px; margin: 5px 0; background-color: white; border-radius: 3px; border-left: 3px solid ${user.isActive ? '#28a745' : '#dc3545'};">
                   <strong>${index + 1}. ${user.firstName} ${user.lastName}</strong><br>
-                  <span style="color: #6c757d;">📧 ${user.email}</span><br>
+                  <span style="color: #6c757d;">${user.email}</span><br>
                   <span style="color: ${user.isActive ? '#28a745' : '#dc3545'};">
-                    ${user.isActive ? '🟢 Active User' : '🔴 Inactive User'}
+                    ${user.isActive ? '🟢 Active' : '🔴 Inactive'}
                   </span>
-                  ${user.phoneNumber ? `<br><span style="color: #6c757d;">📱 ${user.phoneNumber}</span>` : ''}
+                  ${user.role ? ` | Role: ${user.role.name}` : ''}
                 </li>
               `).join('')}
             </ul>
           </div>
-          <p><strong>Email Addresses:</strong> ${emailAddresses.join(', ')}</p>
         </div>
         
         <div class="data-section">
-          <h3>📊 Complete Webhook Data</h3>
-          <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px;">${JSON.stringify(webhook.dataJson, null, 2)}</pre>
+          <h3>📊 Full Webhook Data</h3>
+          <pre style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px;">${JSON.stringify(webhook.dataJson, null, 2)}</pre>
         </div>
         
         <div class="footer">
-          <p>This email is sent for admin notification purposes.</p>
-          <p>Webhook notification has been successfully delivered to ${emailAddresses.length} user(s).</p>
-          <p><strong>Delivery Report Generated:</strong> ${currentTime}</p>
+          <p><strong>Mail Delivery Report Generated:</strong> ${currentTime}</p>
+          <p><strong>Total Recipients:</strong> ${emailAddresses.length} users</p>
+          <p><strong>Company:</strong> ${company.name} (${company.isActive ? 'Active' : 'Inactive'})</p>
           <p>Magna Porta API - Webhook Notification Service</p>
         </div>
+
       </body>
       </html>
     `;

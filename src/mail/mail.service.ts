@@ -1,188 +1,160 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
 import { SentMessageInfo } from 'nodemailer';
+import { MailProvider, MailOptions } from './interfaces/mail-provider.interface';
+import { SmtpProvider } from './providers/smtp.provider';
+import { SendGridProvider } from './providers/sendgrid.provider';
+import { BrevoProvider } from './providers/brevo.provider';
+import { EmailTemplatesService, TransferNotificationData, WelcomeEmailData, PasswordResetData } from './email-templates.service';
 
-export interface MailOptions {
-  to: string | string[];
-  subject: string;
-  text?: string;
-  html?: string;
-  from?: string;
-  cc?: string | string[];
-  bcc?: string | string[];
-  attachments?: Array<{
-    filename: string;
-    content: string | Buffer;
-    contentType?: string;
-  }>;
+export enum MailProviderType {
+  SMTP = 'smtp',
+  SENDGRID = 'sendgrid',
+  BREVO = 'brevo',
+  AUTO = 'auto'
 }
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private transporter: nodemailer.Transporter;
+  private providers: Map<MailProviderType, MailProvider> = new Map();
+  private defaultProvider: MailProviderType = MailProviderType.AUTO;
 
-  constructor(private configService: ConfigService) {
-    this.initializeTransporter();
+  constructor(
+    private configService: ConfigService,
+    private smtpProvider: SmtpProvider,
+    private sendGridProvider: SendGridProvider,
+    private brevoProvider: BrevoProvider,
+    private emailTemplatesService: EmailTemplatesService
+  ) {
+    this.initializeProviders();
   }
 
-  private async initializeTransporter() {
-    try {    
-        console.log("initializeTransporter");
-        console.log("smtp host",this.configService.get('SMTP_HOST'));
-        console.log("smtp port",this.configService.get('SMTP_PORT'));
-        console.log("smtp secure",this.configService.get('SMTP_SECURE'));
-        console.log("smtp user",this.configService.get('SMTP_USER'));
-        console.log("smtp pass",this.configService.get('SMTP_PASS'));
-        
-      const smtpConfig = {
-        host: this.configService.get('SMTP_HOST', 'smtp.gmail.com'),
-        port: this.configService.get('SMTP_PORT', 587),
-        secure: this.configService.get('SMTP_SECURE', false), // true for 465, false for other ports
-        auth: {
-          user: this.configService.get('SMTP_USER'),
-          pass: this.configService.get('SMTP_PASS'),
-        },
-        // Gmail için özel ayarlar
-        service: this.configService.get('SMTP_SERVICE', 'gmail'),
-        // Connection timeout ayarları
-        connectionTimeout: 5000, // 60 saniye
-        greetingTimeout: 5000,   // 30 saniye
-        socketTimeout: 5000,     // 60 saniye
-        // Connection pool ayarları
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
-        // Rate limiting
-        rateLimit: 14, // Gmail için saniyede max 14 mail
-        rateDelta: 1000, // 1 saniye
-      };
-
-      this.transporter = nodemailer.createTransport(smtpConfig);
-
-      await this.transporter.verify();
-      this.logger.log('SMTP bağlantısı başarıyla kuruldu');
-    } catch (error) {
-      this.logger.error('SMTP bağlantısı kurulamadı:', error.message);
-      // Fallback olarak test account oluştur
-      //this.createTestAccount();
+  private initializeProviders() {
+    // SMTP provider'ı her zaman ekle
+    this.providers.set(MailProviderType.SMTP, this.smtpProvider);
+    
+    // SendGrid provider'ı varsa ekle
+    if (this.configService.get('SENDGRID_API_KEY')) {
+      this.providers.set(MailProviderType.SENDGRID, this.sendGridProvider);
     }
-  }
 
-  private async createTestAccount() {
-    try {
-      
-      const testAccount = await nodemailer.createTestAccount();
-      
-      this.transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-        // Connection timeout ayarları
-        connectionTimeout: 5000,
-        greetingTimeout: 5000,
-        socketTimeout: 5000,
-      });
-
-      this.logger.log('Test SMTP hesabı oluşturuldu (Ethereal Email)');
-      this.logger.log(`Test kullanıcı: ${testAccount.user}`);
-      this.logger.log(`Test şifre: ${testAccount.pass}`);
-    } catch (error) {
-      this.logger.error('Test SMTP hesabı oluşturulamadı:', error.message);
+    // Brevo provider'ı varsa ekle
+    if (this.configService.get('BREVO_API_KEY')) {
+      this.providers.set(MailProviderType.BREVO, this.brevoProvider);
     }
+
+    // Default provider'ı belirle - Brevo'ya öncelik ver
+    const configuredProvider = this.configService.get('MAIL_PROVIDER', 'brevo');
+    if (configuredProvider === 'brevo' && this.providers.has(MailProviderType.BREVO)) {
+      this.defaultProvider = MailProviderType.BREVO;
+    } else if (configuredProvider === 'sendgrid' && this.providers.has(MailProviderType.SENDGRID)) {
+      this.defaultProvider = MailProviderType.SENDGRID;
+    } else if (configuredProvider === 'smtp') {
+      this.defaultProvider = MailProviderType.SMTP;
+    } else {
+      // Brevo varsa onu kullan, yoksa AUTO
+      this.defaultProvider = this.providers.has(MailProviderType.BREVO) 
+        ? MailProviderType.BREVO 
+        : MailProviderType.AUTO;
+    }
+
+    this.logger.log(`Mail servisi başlatıldı. Default provider: ${this.defaultProvider}`);
+    this.logger.log(`Aktif provider'lar: ${Array.from(this.providers.keys()).join(', ')}`);
   }
 
-
-  async sendMail(mailOptions: MailOptions): Promise<SentMessageInfo> {
-    const maxRetries = 3;
-    let lastError: Error;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const defaultFrom = this.configService.get('MAIL_FROM', 'noreply@magna-porta.com');
-        
-        const mailConfig = {
-          from: mailOptions.from || defaultFrom,
-          to: mailOptions.to,
-          subject: mailOptions.subject,
-          text: mailOptions.text,
-          html: mailOptions.html,
-          cc: mailOptions.cc,
-          bcc: mailOptions.bcc,
-          attachments: mailOptions.attachments,
-        };
-        console.log("mailConfig");
-        console.log(mailConfig.from);
-        console.log(mailConfig.to);
-        console.log(mailConfig.subject);
-
-        this.logger.log(`Mail gönderim denemesi ${attempt}/${maxRetries}: ${mailOptions.to}`);
-        const result = await this.transporter.sendMail(mailConfig);
-        
-        this.logger.log(`Mail başarıyla gönderildi: ${mailOptions.to}`);
-        
-        // Ethereal Email kullanılıyorsa preview URL'ini logla
-        if (result.messageId && result.previewURL) {
-          this.logger.log(`Mail preview: ${result.previewURL}`);
-        }
-        
-        return result;
-      } catch (error) {
-        console.log("catch blockk")
-        lastError = error;
-        this.logger.log(`Mail gönderim denemesi ${attempt}/${maxRetries} başarısız: ${error.message}`);
-        
-        if (attempt < maxRetries) {
-          // Bir sonraki denemeden önce bekle
-          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
-          this.logger.log(`${delay}ms sonra tekrar denenecek...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+  private async selectProvider(): Promise<MailProvider> {
+    if (this.defaultProvider === MailProviderType.AUTO) {
+      // Brevo varsa öncelik ver, sonra SendGrid, sonra SMTP
+      if (this.providers.has(MailProviderType.BREVO)) {
+        const brevoStatus = await this.brevoProvider.checkStatus();
+        if (brevoStatus.status === 'success') {
+          return this.brevoProvider;
         }
       }
+      
+      if (this.providers.has(MailProviderType.SENDGRID)) {
+        const sendGridStatus = await this.sendGridProvider.checkStatus();
+        if (sendGridStatus.status === 'success') {
+          return this.sendGridProvider;
+        }
+      }
+      
+      return this.smtpProvider;
     }
 
-    this.logger.error(`Mail gönderilemedi (${maxRetries} deneme sonrası): ${lastError.message}`);
-    throw new Error(`Mail gönderilemedi (${maxRetries} deneme sonrası): ${lastError.message}`);
+    const selectedProvider = this.providers.get(this.defaultProvider);
+    if (!selectedProvider) {
+      this.logger.warn(`Seçilen provider (${this.defaultProvider}) bulunamadı, SMTP kullanılıyor`);
+      return this.smtpProvider;
+    }
+
+    return selectedProvider;
   }
 
-  
-  async sendTextMail(to: string | string[], subject: string, text: string): Promise<SentMessageInfo> {
-    return this.sendMail({ to, subject, text });
+  async sendMail(mailOptions: MailOptions, providerType?: MailProviderType): Promise<SentMessageInfo> {
+    let provider: MailProvider;
+
+    if (providerType && this.providers.has(providerType)) {
+      provider = this.providers.get(providerType)!;
+      this.logger.log(`Belirtilen provider kullanılıyor: ${providerType}`);
+    } else {
+      provider = await this.selectProvider();
+      this.logger.log(`Otomatik seçilen provider: ${provider.constructor.name}`);
+    }
+
+    try {
+      return await provider.sendMail(mailOptions);
+    } catch (error) {
+      this.logger.error(`Mail gönderimi başarısız: ${error.message}`);
+      
+      // Eğer Brevo başarısız olursa SendGrid'e, o da başarısız olursa SMTP'ye fallback yap
+      if (provider instanceof BrevoProvider) {
+        if (this.providers.has(MailProviderType.SENDGRID)) {
+          this.logger.log('Brevo başarısız, SendGrid provider\'a geçiliyor...');
+          try {
+            return await this.sendGridProvider.sendMail(mailOptions);
+          } catch (sendGridError) {
+            this.logger.log('SendGrid de başarısız, SMTP provider\'a geçiliyor...');
+            return await this.smtpProvider.sendMail(mailOptions);
+          }
+        } else if (this.providers.has(MailProviderType.SMTP)) {
+          this.logger.log('Brevo başarısız, SMTP provider\'a geçiliyor...');
+          return await this.smtpProvider.sendMail(mailOptions);
+        }
+      } else if (provider instanceof SendGridProvider && this.providers.has(MailProviderType.SMTP)) {
+        this.logger.log('SendGrid başarısız, SMTP provider\'a geçiliyor...');
+        return await this.smtpProvider.sendMail(mailOptions);
+      }
+      
+      throw error;
+    }
   }
 
-  
-  async sendHtmlMail(to: string | string[], subject: string, html: string): Promise<SentMessageInfo> {
-    return this.sendMail({ to, subject, html });
+  async sendTextMail(to: string | string[], subject: string, text: string, providerType?: MailProviderType): Promise<SentMessageInfo> {
+    return this.sendMail({ to, subject, text }, providerType);
   }
 
-  
+  async sendHtmlMail(to: string | string[], subject: string, html: string, providerType?: MailProviderType): Promise<SentMessageInfo> {
+    return this.sendMail({ to, subject, html }, providerType);
+  }
+
   async sendTemplateMail(
     to: string | string[],
     subject: string,
     template: string,
-    variables: Record<string, any>
+    variables: Record<string, any>,
+    providerType?: MailProviderType
   ): Promise<SentMessageInfo> {
-    let html = template;
-    
-    Object.keys(variables).forEach(key => {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      html = html.replace(regex, variables[key]);
-    });
-
-    return this.sendMail({ to, subject, html });
+    return this.sendMail({ to, subject, html: template, ...variables }, providerType);
   }
 
-
-  async sendTestMail(): Promise<SentMessageInfo> {
+  async sendTestMail(providerType?: MailProviderType): Promise<SentMessageInfo> {
     const testHtml = `
       <h1>Test Mail</h1>
       <p>Bu bir test mailidir.</p>
       <p>Gönderim zamanı: ${new Date().toLocaleString('tr-TR')}</p>
+      <p>Provider: ${providerType || 'auto'}</p>
       <hr>
       <p><small>Magna Porta API - Test Mail</small></p>
     `;
@@ -190,25 +162,113 @@ export class MailService {
     return this.sendHtmlMail(
       this.configService.get('TEST_MAIL_TO', 'test@example.com'),
       'Test Mail - Magna Porta API',
-      testHtml
+      testHtml,
+      providerType
     );
   }
 
+  /**
+   * Welcome email gönder
+   */
+  async sendWelcomeEmail(
+    to: string | string[],
+    welcomeData: WelcomeEmailData,
+    providerType?: MailProviderType
+  ): Promise<SentMessageInfo> {
+    const html = this.emailTemplatesService.createWelcomeEmailTemplate(welcomeData);
+    
+    return this.sendMail({
+      to,
+      subject: 'Welcome to Magna Porta!',
+      html
+    }, providerType);
+  }
 
-  async checkSmtpStatus(): Promise<{ status: string; message: string; details?: any }> {
-    try {
-      if (!this.transporter) {
-        return { status: 'error', message: 'SMTP transporter başlatılmamış' };
-      }
+  /**
+   * Password reset email gönder
+   */
+  async sendPasswordResetEmail(
+    to: string | string[],
+    resetData: PasswordResetData,
+    providerType?: MailProviderType
+  ): Promise<SentMessageInfo> {
+    const html = this.emailTemplatesService.createPasswordResetTemplate(resetData);
+    
+    return this.sendMail({
+      to,
+      subject: 'Password Reset Request - Magna Porta',
+      html
+    }, providerType);
+  }
 
-      await this.transporter.verify();
-      return { status: 'success', message: 'SMTP bağlantısı aktif' };
-    } catch (error) {
-      return { 
-        status: 'error', 
-        message: 'SMTP bağlantısı başarısız',
-        details: error.message 
-      };
+  async sendTransferNotification(
+    to: string | string[],
+    transferData: TransferNotificationData,
+    providerType?: MailProviderType
+  ): Promise<SentMessageInfo> {
+    let provider: MailProvider;
+
+    if (providerType && this.providers.has(providerType)) {
+      provider = this.providers.get(providerType)!;
+      this.logger.log(`Belirtilen provider kullanılıyor: ${providerType}`);
+    } else {
+      provider = await this.selectProvider();
+      this.logger.log(`Otomatik seçilen provider: ${provider.constructor.name}`);
     }
+
+    try {
+      // SendGrid provider'da yeni şablon varsa onu kullan
+      if (provider instanceof SendGridProvider && 'sendTransactionalEmail' in provider) {
+        return await (provider as any).sendTransactionalEmail(to, transferData);
+      }
+      
+      // Güzel HTML template kullan
+      const html = this.emailTemplatesService.createTransferNotificationTemplate(transferData);
+      
+      return await provider.sendMail({ 
+        to, 
+        subject: `Transfer to ${transferData.recipientName} is on its way`,
+        html 
+      });
+      
+    } catch (error) {
+      this.logger.error(`Transfer mail gönderimi başarısız: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async checkProviderStatus(providerType?: MailProviderType): Promise<{ [key: string]: { status: string; message: string; details?: any } }> {
+    const status: { [key: string]: { status: string; message: string; details?: any } } = {};
+
+    if (providerType) {
+      const provider = this.providers.get(providerType);
+      if (provider) {
+        status[providerType] = await provider.checkStatus();
+      }
+    } else {
+      // Tüm provider'ların durumunu kontrol et
+      for (const [type, provider] of this.providers.entries()) {
+        status[type] = await provider.checkStatus();
+      }
+    }
+
+    return status;
+  }
+
+  async setDefaultProvider(providerType: MailProviderType): Promise<void> {
+    if (this.providers.has(providerType)) {
+      this.defaultProvider = providerType;
+      this.logger.log(`Default provider ${providerType} olarak ayarlandı`);
+    } else {
+      throw new Error(`Provider ${providerType} bulunamadı`);
+    }
+  }
+
+  getAvailableProviders(): MailProviderType[] {
+    return Array.from(this.providers.keys());
+  }
+
+  getDefaultProvider(): MailProviderType {
+    return this.defaultProvider;
   }
 }

@@ -6,6 +6,7 @@ import { MailService } from '../../mail/mail.service';
 import { CompaniesService } from '../../company/companies.service';
 import { EmailTemplatesService, TransferNotificationData } from '../../mail/email-templates.service';
 import { ConversionSettledEmailData } from '../models/conversion-settled.model';
+import { AccountActiveHookData, AccountActiveEmailData } from '../models/account-active.model';
 import { WebhookDataParserService } from './webhook-data-parser.service';
 
 @Injectable()
@@ -145,32 +146,46 @@ export class WebhookMailSchedulerService {
         <title>Magna Porta Notification</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f8f9fa;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 50px 20px; text-align: center; color: white; border-radius: 0 0 20px 20px;">
-            <img src="${this.LOGO_URL}" 
-                 alt="Magna Porta" 
-                 style="max-width: 200px; height: auto; margin-bottom: 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">
-          </div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <tr>
+            <td style="padding: 50px 20px; text-align: center; color: white; border-radius: 0 0 20px 20px;">
+              <img src="${this.LOGO_URL}" 
+                   alt="Magna Porta" 
+                   style="max-width: 200px; height: auto; margin-bottom: 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">
+            </td>
+          </tr>
           
-          <div style="padding: 40px 30px; background-color: #ffffff;">
-            ${this.generateMinimalWebhookContent(webhook)}
-            
-            <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3; margin: 20px 0;">
-              <p style="margin: 0 0 15px 0; line-height: 1.6;"><strong>Transaction Time:</strong> ${new Date(webhook.receivedAt).toLocaleString('en-US')}</p>
-              <p style="margin: 0 0 15px 0; line-height: 1.6;"><strong>Reference No:</strong> ${webhook.webhookId}</p>
-            </div>
-            
-            <div style="background-color: #f8f9fa; padding: 30px; border-radius: 15px; margin: 25px 0; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-              <h3 style="margin: 0 0 20px 0; color: #495057; font-size: 20px; text-align: center;">📋 Transaction Details</h3>
-              ${this.generateTransactionDetails(webhook)}
-            </div>
-          </div>
+          <tr>
+            <td style="padding: 40px 30px; background-color: #ffffff;">
+              ${this.generateMinimalWebhookContent(webhook)}
+              
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+                <tr>
+                  <td style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                    <p style="margin: 0 0 15px 0; line-height: 1.6;"><strong>Transaction Time:</strong> ${new Date(webhook.receivedAt).toLocaleString('en-US')}</p>
+                    <p style="margin: 0 0 15px 0; line-height: 1.6;"><strong>Reference No:</strong> ${webhook.webhookId}</p>
+                  </td>
+                </tr>
+              </table>
+              
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 25px 0;">
+                <tr>
+                  <td style="background-color: #f8f9fa; padding: 30px; border-radius: 15px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <h3 style="margin: 0 0 20px 0; color: #495057; font-size: 20px; text-align: center;">📋 Transaction Details</h3>
+                    ${this.generateTransactionDetails(webhook)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="background-color: #f8f9fa; padding: 30px; text-align: center; color: #6c757d; font-size: 14px;">
-            <p style="margin: 0 0 15px 0; line-height: 1.6;">This is an automated notification from Magna Porta</p>
-            <p style="margin: 0 0 15px 0; line-height: 1.6;">Please do not reply to this email</p>
-          </div>
-        </div>
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 30px; text-align: center; color: #6c757d; font-size: 14px;">
+              <p style="margin: 0 0 15px 0; line-height: 1.6;">This is an automated notification from Magna Porta</p>
+              <p style="margin: 0 0 15px 0; line-height: 1.6;">Please do not reply to this email</p>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -305,6 +320,9 @@ export class WebhookMailSchedulerService {
       case 'transfer.new':
         return this.generateTransferContent(data);
       
+      case 'account.active':
+        return this.generateAccountActiveContent(data);
+      
       default:
         return this.generateDefaultContent(webhookName);
     }
@@ -431,6 +449,69 @@ export class WebhookMailSchedulerService {
   }
 
   /**
+   * Account active webhook content
+   */
+  private generateAccountActiveContent(data: any): string {
+    const accountData = data as AccountActiveHookData;
+    
+    // Company name'i primary contact'tan al
+    const companyName = accountData.data?.primary_contact?.first_name && accountData.data?.primary_contact?.last_name
+      ? `${accountData.data.primary_contact.first_name} ${accountData.data.primary_contact.last_name}`
+      : 'Your Company';
+    
+    // Account type'ı legal entity type'dan al
+    const accountType = accountData.data?.account_details?.legal_entity_type === 'INDIVIDUAL' 
+      ? 'Individual Account' 
+      : 'Business Account';
+    
+    // Account location'ı address'ten al
+    const accountLocation = accountData.data?.account_details?.individual_details?.address?.country_code || 'Unknown';
+    
+    // Account status
+    const accountStatus = accountData.data?.status || 'Unknown';
+    
+    // Airwallex account name
+    const airwallexAccount = companyName;
+    
+    // Activation date
+    const activationDate = new Date(accountData.data?.created_at || Date.now()).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    return `
+      <div class="custom-content">
+        <h3>🎉 Account Activated Successfully!</h3>
+        <p><strong>Account Status:</strong> ${accountStatus}</p>
+        <p><strong>Activation Date:</strong> ${activationDate}</p>
+        
+        <div style="background-color: #f0f8ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h4>🏢 Account Information</h4>
+          <p><strong>Company/Individual:</strong> ${companyName}</p>
+          <p><strong>Account Type:</strong> ${accountType}</p>
+          <p><strong>Account Location:</strong> ${accountLocation}</p>
+          <p><strong>Airwallex Account:</strong> ${airwallexAccount}</p>
+        </div>
+        
+        <div style="background-color: #f0fff0; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h4>📋 Account Details</h4>
+          <p><strong>Account ID:</strong> ${accountData.account_id}</p>
+          <p><strong>Legal Entity Type:</strong> ${accountData.data?.account_details?.legal_entity_type || 'Unknown'}</p>
+          <p><strong>View Type:</strong> ${accountData.data?.view_type || 'Unknown'}</p>
+        </div>
+        
+        <div style="background-color: #fff8f0; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h4>💳 Account Usage</h4>
+          <p><strong>Expected Monthly Volume:</strong> ${accountData.data?.account_usage?.expected_monthly_transaction_volume?.amount || '0'} USD</p>
+          <p><strong>Collection Countries:</strong> ${accountData.data?.account_usage?.collection_country_codes?.join(', ') || 'None'}</p>
+          <p><strong>Payout Countries:</strong> ${accountData.data?.account_usage?.payout_country_codes?.join(', ') || 'None'}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Normal kullanıcılar için minimal webhook content
    */
   private generateMinimalWebhookContent(webhook: any): string {
@@ -455,6 +536,8 @@ export class WebhookMailSchedulerService {
         return this.generateConversionSettledTemplate(parsedData);
       case 'transfer':
         return this.generateTransferProcessedTemplate(data);
+      case 'account.active':
+        return this.generateAccountActiveTemplate(data);
       default:
         return this.generateDefaultWebhookTemplate(webhook.webhookName);
     }
@@ -478,63 +561,107 @@ export class WebhookMailSchedulerService {
         <title>Payment Received</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
-            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
-              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
-          </div>
-            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Payment Successfully Received!</h1>
-            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your account has been credited</p>
-          </div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                      <tr>
+                        <td style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; text-align: center; vertical-align: middle; padding-right: 12px;">
+                          <span style="font-size: 20px; color: white;">🏠</span>
+                        </td>
+                        <td style="text-align: left;">
+                          <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
+                        </td>
+                      </tr>
+                    </table>
+                    <h1 style="font-size: 28px; font-weight: 700; margin: 20px 0 10px 0; color: white;">Payment Successfully Received!</h1>
+                    <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your account has been credited</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="padding: 40px 30px;">
-            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
-            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
-              Great news! Your account has received a payment of <strong>${amount} ${currency}</strong>.<br>
-              Here's a summary of this transaction:
-            </p>
-            
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
-              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transaction Summary</h3>
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+              <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
+                Great news! Your account has received a payment of <strong>${amount} ${currency}</strong>.<br>
+                Here's a summary of this transaction:
+              </p>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction Type:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">Payment Received</span>
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transaction Summary</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction Type:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">Payment Received</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Amount:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${amount} ${currency}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${transactionId}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${date}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">✅ Completed</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Amount:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${amount} ${currency}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${transactionId}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Completed</span>
-              </div>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Transaction</a>
-            </div>
-          </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Transaction</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-            <p style="font-size: 12px; color: #6c757d; margin: 0;">
-              This email was sent by Magna Porta. If you have any questions, please contact our support team.
-            </p>
-          </div>
-        </div>
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="font-size: 12px; color: #6c757d; margin: 0;">
+                This email was sent by Magna Porta. If you have any questions, please contact our support team.
+              </p>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -558,63 +685,108 @@ export class WebhookMailSchedulerService {
         <title>Transfer Completed</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); padding: 30px; text-align: center; color: white;">
-            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
-              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
-          </div>
-            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Transfer Successfully Completed!</h1>
-            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer has been processed</p>
-          </div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); padding: 30px; text-align: center; color: white;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                      <tr>
+                        <td style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; text-align: center; vertical-align: middle; padding-right: 12px;">
+                          <span style="font-size: 20px; color: white;">🏠</span>
+                        </td>
+                        <td style="text-align: left;">
+                          <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
+                        </td>
+                      </tr>
+                    </table>
+                    <h1 style="font-size: 28px; font-weight: 700; margin: 20px 0 10px 0; color: white;">Transfer Successfully Completed!</h1>
+                    <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer has been processed</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="padding: 40px 30px;">
-            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
-            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
-              Your transfer of <strong>${amount} ${currency}</strong> has been successfully completed.<br>
-              Here's a summary of this transaction:
-            </p>
-            
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
-              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transfer Summary</h3>
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+              <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
+                Your transfer of <strong>${amount} ${currency}</strong> has been successfully completed.<br>
+                Here's a summary of this transaction:
+              </p>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer Type:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">Connected Account Transfer</span>
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transfer Summary</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer Type:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">Connected Account Transfer</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Amount:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${amount} ${currency}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${transactionId}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${date}</span>
+                        </td>
+                      </tr>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Amount:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${amount} ${currency}</span>
-              </div>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">✅ Completed</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${transactionId}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Completed</span>
-              </div>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);">Transferi Görüntüle</a>
-            </div>
-          </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <a href="#" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);">Transferi Görüntüle</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef; margin-top: 20px;">
-            <p style="font-size: 12px; color: #6c757d; margin: 0;">
-              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
-            </p>
-          </div>
-        </div>
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="font-size: 12px; color: #6c757d; margin: 0;">
+                Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+              </p>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -641,68 +813,116 @@ export class WebhookMailSchedulerService {
         <title>Currency Conversion Completed</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); padding: 30px; text-align: center; color: white;">
-            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
-              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
-          </div>
-            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Currency Conversion Completed!</h1>
-            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your conversion has been processed</p>
-          </div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); padding: 30px; text-align: center; color: white;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                      <tr>
+                        <td style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; text-align: center; vertical-align: middle; padding-right: 12px;">
+                          <span style="font-size: 20px; color: white;">🏠</span>
+                        </td>
+                        <td style="text-align: left;">
+                          <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
+                        </td>
+                      </tr>
+                    </table>
+                    <h1 style="font-size: 28px; font-weight: 700; margin: 20px 0 10px 0; color: white;">Currency Conversion Completed!</h1>
+                    <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your conversion has been processed</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="padding: 40px 30px;">
-            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
-            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
-              Your currency conversion has been successfully completed.<br>
-              Here's a summary of this transaction:
-            </p>
-            
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
-              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Conversion Summary</h3>
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+              <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
+                Your currency conversion has been successfully completed.<br>
+                Here's a summary of this transaction:
+              </p>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Source Amount:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${sourceAmount} ${sourceCurrency}</span>
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Conversion Summary</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Source Amount:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${sourceAmount} ${sourceCurrency}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Target Amount:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${targetAmount} ${targetCurrency}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Exchange Rate:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">1 ${sourceCurrency} = ${rate} ${targetCurrency}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${transactionId}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${date}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">✅ Completed</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Target Amount:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${targetAmount} ${targetCurrency}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Exchange Rate:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">1 ${sourceCurrency} = ${rate} ${targetCurrency}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${transactionId}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Completed</span>
-              </div>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);">View Conversion</a>
-            </div>
-          </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <a href="#" style="display: inline-block; background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);">View Conversion</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-            <p style="font-size: 12px; color: #6c757d; margin: 0;">
-              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
-            </p>
-          </div>
-        </div>
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="font-size: 12px; color: #6c757d; margin: 0;">
+                Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+              </p>
+            </td>
+          </tr>
+        </table>
+        
       </body>
       </html>
     `;
@@ -724,69 +944,107 @@ export class WebhookMailSchedulerService {
         <title>Currency Conversion Settled</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
-            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Currency Conversion Settled!</h1>
-            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your conversion has been successfully processed</p>
-          </div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
+              <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Currency Conversion Settled!</h1>
+              <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your conversion has been successfully processed</p>
+            </td>
+          </tr>
           
-          <div style="padding: 40px 30px;">
-            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
-            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
-              Your currency conversion has been successfully completed and settled.<br>
-              Here's a detailed summary of this transaction:
-            </p>
-            
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
-              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Conversion Transaction Summary</h3>
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+              <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
+                Your currency conversion has been successfully completed and settled.<br>
+                Here's a detailed summary of this transaction:
+              </p>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Reference ID:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.shortReferenceId}</span>
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Conversion Transaction Summary</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Reference ID:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${conversionData.shortReferenceId}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Currency Pair:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${conversionData.currencyPair}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Buy Amount:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${conversionData.buyAmount} ${conversionData.buyCurrency}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Sell Amount:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${conversionData.sellAmount} ${conversionData.sellCurrency}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Client Rate:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">1 ${conversionData.buyCurrency} = ${conversionData.clientRate} ${conversionData.sellCurrency}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Conversion Date:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${conversionData.conversionDate}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">✅ ${conversionData.status}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Currency Pair:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.currencyPair}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Buy Amount:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.buyAmount} ${conversionData.buyCurrency}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Sell Amount:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.sellAmount} ${conversionData.sellCurrency}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Client Rate:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">1 ${conversionData.buyCurrency} = ${conversionData.clientRate} ${conversionData.sellCurrency}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Conversion Date:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.conversionDate}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ ${conversionData.status}</span>
-              </div>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Conversion Details</a>
-            </div>
-          </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Conversion Details</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-            <p style="font-size: 12px; color: #6c757d; margin: 0;">
-              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
-            </p>
-          </div>
-        </div>
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="font-size: 12px; color: #6c757d; margin: 0;">
+                Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+              </p>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -812,73 +1070,123 @@ export class WebhookMailSchedulerService {
         <title>Transfer Processed</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%); padding: 30px; text-align: center; color: white;">
-            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
-              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
-          </div>
-            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Transfer Successfully Processed!</h1>
-            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer has been completed</p>
-          </div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%); padding: 30px; text-align: center; color: white;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                      <tr>
+                        <td style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; text-align: center; vertical-align: middle; padding-right: 12px;">
+                          <span style="font-size: 20px; color: white;">🏠</span>
+                        </td>
+                        <td style="text-align: left;">
+                          <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
+                        </td>
+                      </tr>
+                    </table>
+                    <h1 style="font-size: 28px; font-weight: 700; margin: 20px 0 10px 0; color: white;">Transfer Successfully Processed!</h1>
+                    <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer has been completed</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="padding: 40px 30px;">
-            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
-            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
-              Your transfer of <strong>${amount} ${currency}</strong> has been successfully processed.<br>
-              Here's a summary of this transaction:
-            </p>
-            
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
-              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transfer Summary</h3>
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+              <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
+                Your transfer of <strong>${amount} ${currency}</strong> has been successfully processed.<br>
+                Here's a summary of this transaction:
+              </p>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer Type:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">General Transfer</span>
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transfer Summary</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer Type:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">General Transfer</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Amount:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${amount} ${currency}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Source Account:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${sourceAccount}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Destination Account:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${destinationAccount}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${transactionId}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${date}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">✅ Completed</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Amount:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${amount} ${currency}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Source Account:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${sourceAccount}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Destination Account:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${destinationAccount}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${transactionId}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Completed</span>
-              </div>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);">Transferi Görüntüle</a>
-            </div>
-          </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <a href="#" style="display: inline-block; background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);">Transferi Görüntüle</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-            <p style="font-size: 12px; color: #6c757d; margin: 0;">
-              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
-            </p>
-          </div>
-        </div>
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="font-size: 12px; color: #6c757d; margin: 0;">
+                Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+              </p>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -899,53 +1207,91 @@ export class WebhookMailSchedulerService {
         <title>Account Update</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); padding: 30px; text-align: center; color: white;">
-            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
-              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
-          </div>
-            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Account Updated</h1>
-            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your account has been updated</p>
-          </div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); padding: 30px; text-align: center; color: white;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                      <tr>
+                        <td style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; text-align: center; vertical-align: middle; padding-right: 12px;">
+                          <span style="font-size: 20px; color: white;">🏠</span>
+                        </td>
+                        <td style="text-align: left;">
+                          <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
+                        </td>
+                      </tr>
+                    </table>
+                    <h1 style="font-size: 28px; font-weight: 700; margin: 20px 0 10px 0; color: white;">Account Updated</h1>
+                    <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your account has been updated</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="padding: 40px 30px;">
-            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
-            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
-              Your Magna Porta account has been updated.<br>
-              Here's a summary of this update:
-            </p>
-            
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
-              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Update Summary</h3>
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+              <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
+                Your Magna Porta account has been updated.<br>
+                Here's a summary of this update:
+              </p>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Update Type:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${webhookName}</span>
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Update Summary</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Update Type:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${webhookName}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${date}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">✅ Updated</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Updated</span>
-              </div>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);">View Details</a>
-            </div>
-          </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <a href="#" style="display: inline-block; background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);">View Details</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-            <p style="font-size: 12px; color: #6c757d; margin: 0;">
-              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
-            </p>
-          </div>
-        </div>
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="font-size: 12px; color: #6c757d; margin: 0;">
+                Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+              </p>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -961,104 +1307,138 @@ export class WebhookMailSchedulerService {
       case 'payout_transfer_funding_funded':
       case 'payout.transfer.funding.funded':
         return `
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Amount</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.amount_beneficiary_receives || 0} ${data.transfer_currency || 'USD'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">To Recipient</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.beneficiary?.bank_details?.account_name || 'N/A'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Date</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.transfer_date || 'N/A'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Reference</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.reference || 'N/A'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
-              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">Transfer Completed</span>
-            </div>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 20px;">
+            <tr>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Amount</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.amount_beneficiary_receives || 0} ${data.transfer_currency || 'USD'}</span>
+              </td>
+              <td style="width: 12px;"></td>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">To Recipient</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.beneficiary?.bank_details?.account_name || 'N/A'}</span>
+              </td>
+            </tr>
+            <tr style="height: 12px;"><td colspan="3"></td></tr>
+            <tr>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Date</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.transfer_date || 'N/A'}</span>
+              </td>
+              <td style="width: 12px;"></td>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Reference</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.reference || 'N/A'}</span>
+              </td>
+            </tr>
+            <tr style="height: 12px;"><td colspan="3"></td></tr>
+            <tr>
+              <td colspan="3" style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+                <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">Transfer Completed</span>
+              </td>
+            </tr>
+          </table>
         `;
       case 'connected_account_transfer':
         return `
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Amount</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.amount || 0} ${data.currency || 'USD'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">From Account</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.source_account || 'Source Account'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">To Account</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.destination_account || 'Destination Account'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
-              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">${data.status || 'Completed'}</span>
-            </div>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 20px;">
+            <tr>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Amount</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.amount || 0} ${data.currency || 'USD'}</span>
+              </td>
+              <td style="width: 12px;"></td>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">From Account</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.source_account || 'Source Account'}</span>
+              </td>
+            </tr>
+            <tr style="height: 12px;"><td colspan="3"></td></tr>
+            <tr>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">To Account</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.destination_account || 'Destination Account'}</span>
+              </td>
+              <td style="width: 12px;"></td>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+                <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">${data.status || 'Completed'}</span>
+              </td>
+            </tr>
+          </table>
         `;
       case 'conversion':
         return `
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Converted From</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.source_amount || 0} ${data.source_currency || 'USD'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Converted To</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.target_amount || 0} ${data.target_currency || 'USD'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Exchange Rate</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">1 ${data.source_currency || 'USD'} = ${data.rate || 0} ${data.target_currency || 'USD'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
-              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">Successfully Converted</span>
-            </div>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 20px;">
+            <tr>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Converted From</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.source_amount || 0} ${data.source_currency || 'USD'}</span>
+              </td>
+              <td style="width: 12px;"></td>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Converted To</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.target_amount || 0} ${data.target_currency || 'USD'}</span>
+              </td>
+            </tr>
+            <tr style="height: 12px;"><td colspan="3"></td></tr>
+            <tr>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Exchange Rate</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">1 ${data.source_currency || 'USD'} = ${data.rate || 0} ${data.target_currency || 'USD'}</span>
+              </td>
+              <td style="width: 12px;"></td>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+                <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">Successfully Converted</span>
+              </td>
+            </tr>
+          </table>
         `;
       case 'transfer':
         return `
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Amount</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.amount || 0} ${data.currency || 'USD'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">From Account</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.source_account || 'Source Account'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">To Account</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.destination_account || 'Destination Account'}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
-              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">${data.status || 'Successfully Processed'}</span>
-            </div>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 20px;">
+            <tr>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Amount</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.amount || 0} ${data.currency || 'USD'}</span>
+              </td>
+              <td style="width: 12px;"></td>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">From Account</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.source_account || 'Source Account'}</span>
+              </td>
+            </tr>
+            <tr style="height: 12px;"><td colspan="3"></td></tr>
+            <tr>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">To Account</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.destination_account || 'Destination Account'}</span>
+              </td>
+              <td style="width: 12px;"></td>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+                <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">${data.status || 'Successfully Processed'}</span>
+              </td>
+            </tr>
+          </table>
         `;
       default:
         return `
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transaction Type</span>
-              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${webhook.webhookName}</span>
-            </div>
-            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
-              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">Successfully Completed</span>
-            </div>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 20px;">
+            <tr>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transaction Type</span>
+                <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${webhook.webhookName}</span>
+              </td>
+              <td style="width: 12px;"></td>
+              <td style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 50%; vertical-align: top;">
+                <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+                <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">Successfully Completed</span>
+              </td>
+            </tr>
+          </table>
         `;
     }
   }
@@ -1198,87 +1578,321 @@ export class WebhookMailSchedulerService {
         <title>Transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
-            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Your transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</h1>
-            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer should arrive in 0-2 business days</p>
-          </div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
+              <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Your transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</h1>
+              <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer should arrive in 0-2 business days</p>
+            </td>
+          </tr>
           
-          <div style="padding: 40px 30px;">
-            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hi there,</p>
-            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
-              Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> should arrive in 0-2 business days from <strong>${payoutData.transfer_date || 'N/A'}</strong>. Here's a summary of this transfer:
-            </p>
-            
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
-              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transfer Summary</h3>
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hi there,</p>
+              <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
+                Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> should arrive in 0-2 business days from <strong>${payoutData.transfer_date || 'N/A'}</strong>. Here's a summary of this transfer:
+              </p>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Airwallex account</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.payer?.company_name || 'N/A'}</span>
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transfer Summary</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Airwallex account</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.payer?.company_name || 'N/A'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer amount</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.amount_beneficiary_receives || 0} ${payoutData.transfer_currency || 'USD'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">To</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.beneficiary?.bank_details?.account_name || 'N/A'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer date</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.transfer_date || 'N/A'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer method</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.transfer_method || 'BANK_TRANSFER'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer ID</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.id || 'N/A'}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer amount</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.amount_beneficiary_receives || 0} ${payoutData.transfer_currency || 'USD'}</span>
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Additional Details</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Reference</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.reference || 'N/A'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">IBAN</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">•••• ${payoutData.beneficiary?.bank_details?.iban?.slice(-4) || 'N/A'} - ${payoutData.beneficiary?.bank_details?.swift_code || 'N/A'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Bank</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.beneficiary?.bank_details?.bank_name || 'N/A'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Account Currency</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.beneficiary?.bank_details?.account_currency || 'N/A'}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">To</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.beneficiary?.bank_details?.account_name || 'N/A'}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer date</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.transfer_date || 'N/A'}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer method</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.transfer_method || 'BANK_TRANSFER'}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer ID</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.id || 'N/A'}</span>
-              </div>
-            </div>
-            
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
-              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Additional Details</h3>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Reference</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.reference || 'N/A'}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">IBAN</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">•••• ${payoutData.beneficiary?.bank_details?.iban?.slice(-4) || 'N/A'} - ${payoutData.beneficiary?.bank_details?.swift_code || 'N/A'}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Bank</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.beneficiary?.bank_details?.bank_name || 'N/A'}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Account Currency</span>
-                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.beneficiary?.bank_details?.account_currency || 'N/A'}</span>
-              </div>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Transfer Details</a>
-            </div>
-          </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Transfer Details</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
-          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-            <p style="font-size: 12px; color: #6c757d; margin: 0;">
-              This email was sent by Magna Porta. If you have any questions, please contact our support team.
-            </p>
-          </div>
-        </div>
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="font-size: 12px; color: #6c757d; margin: 0;">
+                This email was sent by Magna Porta. If you have any questions, please contact our support team.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Account active template - özel account.active webhook için
+   */
+  private generateAccountActiveTemplate(data: any): string {
+    // AccountActiveHookData tipinde data bekliyoruz
+    const accountData = data as AccountActiveHookData;
+    
+    // Company name'i primary contact'tan al
+    const companyName = accountData.data?.primary_contact?.first_name && accountData.data?.primary_contact?.last_name
+      ? `${accountData.data.primary_contact.first_name} ${accountData.data.primary_contact.last_name}`
+      : 'Your Company';
+    
+    // Account type'ı legal entity type'dan al
+    const accountType = accountData.data?.account_details?.legal_entity_type === 'INDIVIDUAL' 
+      ? 'Individual Account' 
+      : 'Business Account';
+    
+    // Account location'ı address'ten al
+    const accountLocation = accountData.data?.account_details?.individual_details?.address?.country_code || 'Unknown';
+    
+    // Account status
+    const accountStatus = accountData.data?.status || 'Unknown';
+    
+    // Airwallex account name
+    const airwallexAccount = companyName;
+    
+    // Activation date
+    const activationDate = new Date(accountData.data?.created_at || Date.now()).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your ${accountType} has been activated</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <h1 style="font-size: 28px; font-weight: 700; margin: 20px 0 10px 0; color: white;">Your ${accountType} has been activated!</h1>
+                    <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your account is now ready to use</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hi ${companyName},</p>
+              <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
+                Thank you for your patience. Your ${accountType} has now been activated and is ready to use. Here's a summary of your account details:
+              </p>
+              
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Account Summary</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Account Type:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountType}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Account Location:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountLocation}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">✅ ${accountStatus}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Airwallex Account:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${airwallexAccount}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Account ID:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.account_id}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Activation Date:</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${activationDate}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Account Usage Information</h3>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Expected Monthly Volume:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.data?.account_usage?.expected_monthly_transaction_volume?.amount || '0'} USD</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Collection Countries:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.data?.account_usage?.collection_country_codes?.join(', ') || 'None'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Payout Countries:</span>
+                        </td>
+                        <td style="padding: 12px 0; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.data?.account_usage?.payout_country_codes?.join(', ') || 'None'}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">Access Your Account</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="font-size: 12px; color: #6c757d; margin: 0;">
+                This email was sent by Magna Porta. If you have any questions, please contact our support team.
+              </p>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;

@@ -109,6 +109,8 @@ export class MailService {
           bcc: mailOptions.bcc,
           attachments: mailOptions.attachments,
         };
+        console.log("mailConfig");
+        console.log(mailConfig);
 
         this.logger.log(`Mail gönderim denemesi ${attempt}/${maxRetries}: ${mailOptions.to}`);
         const result = await this.transporter.sendMail(mailConfig);
@@ -122,8 +124,9 @@ export class MailService {
         
         return result;
       } catch (error) {
+        console.log("catch blockk")
         lastError = error;
-        this.logger.warn(`Mail gönderim denemesi ${attempt}/${maxRetries} başarısız: ${error.message}`);
+        this.logger.log(`Mail gönderim denemesi ${attempt}/${maxRetries} başarısız: ${error.message}`);
         
         if (attempt < maxRetries) {
           // Bir sonraki denemeden önce bekle

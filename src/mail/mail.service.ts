@@ -29,6 +29,13 @@ export class MailService {
 
   private async initializeTransporter() {
     try {    
+        console.log("initializeTransporter");
+        console.log("smtp host",this.configService.get('SMTP_HOST'));
+        console.log("smtp port",this.configService.get('SMTP_PORT'));
+        console.log("smtp secure",this.configService.get('SMTP_SECURE'));
+        console.log("smtp user",this.configService.get('SMTP_USER'));
+        console.log("smtp pass",this.configService.get('SMTP_PASS'));
+        
       const smtpConfig = {
         host: this.configService.get('SMTP_HOST', 'smtp.gmail.com'),
         port: this.configService.get('SMTP_PORT', 587),
@@ -40,9 +47,9 @@ export class MailService {
         // Gmail için özel ayarlar
         service: this.configService.get('SMTP_SERVICE', 'gmail'),
         // Connection timeout ayarları
-        connectionTimeout: 60000, // 60 saniye
-        greetingTimeout: 30000,   // 30 saniye
-        socketTimeout: 60000,     // 60 saniye
+        connectionTimeout: 5000, // 60 saniye
+        greetingTimeout: 5000,   // 30 saniye
+        socketTimeout: 5000,     // 60 saniye
         // Connection pool ayarları
         pool: true,
         maxConnections: 5,
@@ -77,9 +84,9 @@ export class MailService {
           pass: testAccount.pass,
         },
         // Connection timeout ayarları
-        connectionTimeout: 60000,
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 5000,
       });
 
       this.logger.log('Test SMTP hesabı oluşturuldu (Ethereal Email)');

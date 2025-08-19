@@ -110,7 +110,9 @@ export class MailService {
           attachments: mailOptions.attachments,
         };
         console.log("mailConfig");
-        console.log(mailConfig);
+        console.log(mailConfig.from);
+        console.log(mailConfig.to);
+        console.log(mailConfig.subject);
 
         this.logger.log(`Mail gönderim denemesi ${attempt}/${maxRetries}: ${mailOptions.to}`);
         const result = await this.transporter.sendMail(mailConfig);

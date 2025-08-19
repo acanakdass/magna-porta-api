@@ -66,7 +66,7 @@ export class MailService {
     } catch (error) {
       this.logger.error('SMTP bağlantısı kurulamadı:', error.message);
       // Fallback olarak test account oluştur
-      this.createTestAccount();
+      //this.createTestAccount();
     }
   }
 

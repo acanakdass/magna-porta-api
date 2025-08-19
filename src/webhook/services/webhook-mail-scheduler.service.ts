@@ -143,141 +143,32 @@ export class WebhookMailSchedulerService {
       <head>
         <meta charset="UTF-8">
         <title>Magna Porta Notification</title>
-        <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background-color: #f8f9fa; 
-          }
-          .container { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background-color: #ffffff; 
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-          }
-          .header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            padding: 50px 20px; 
-            text-align: center; 
-            color: white; 
-            border-radius: 0 0 20px 20px;
-          }
-          .logo { 
-            max-width: 200px; 
-            height: auto; 
-            margin-bottom: 0; 
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-          }
-          .content { 
-            padding: 40px 30px; 
-            background-color: #ffffff; 
-          }
-          .notification-card { 
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
-            color: white; 
-            padding: 25px; 
-            border-radius: 12px; 
-            margin: 20px 0; 
-            text-align: center; 
-          }
-          .footer { 
-            background-color: #f8f9fa; 
-            padding: 30px; 
-            text-align: center; 
-            color: #6c757d; 
-            font-size: 14px; 
-          }
-          h1 { margin: 0; font-size: 28px; font-weight: 600; }
-          h2 { margin: 0 0 15px 0; font-size: 24px; font-weight: 600; }
-          p { margin: 0 0 15px 0; line-height: 1.6; }
-          .highlight { 
-            background-color: #e3f2fd; 
-            padding: 20px; 
-            border-radius: 8px; 
-            border-left: 4px solid #2196f3; 
-            margin: 20px 0; 
-          }
-          .transaction-details {
-            background-color: #f8f9fa;
-            padding: 30px;
-            border-radius: 15px;
-            margin: 25px 0;
-            border: 1px solid #e9ecef;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-          }
-          .transaction-details h3 {
-            margin: 0 0 20px 0;
-            color: #495057;
-            font-size: 20px;
-            text-align: center;
-          }
-          .detail-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-            margin-top: 20px;
-          }
-          .detail-item {
-            background-color: white;
-            padding: 18px 15px;
-            border-radius: 10px;
-            border: 1px solid #e9ecef;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.2s ease;
-          }
-          .detail-item:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-          }
-          .detail-label {
-            display: block;
-            font-size: 11px;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 8px;
-            font-weight: 500;
-          }
-          .detail-value {
-            display: block;
-            font-size: 15px;
-            font-weight: 600;
-            color: #212529;
-            line-height: 1.3;
-          }
-          .detail-value.success {
-            color: #28a745;
-            font-weight: 700;
-          }
-        </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f8f9fa;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 50px 20px; text-align: center; color: white; border-radius: 0 0 20px 20px;">
             <img src="${this.LOGO_URL}" 
                  alt="Magna Porta" 
-                 class="logo">
+                 style="max-width: 200px; height: auto; margin-bottom: 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">
           </div>
           
-          <div class="content">
+          <div style="padding: 40px 30px; background-color: #ffffff;">
             ${this.generateMinimalWebhookContent(webhook)}
             
-            <div class="highlight">
-              <p><strong>Transaction Time:</strong> ${new Date(webhook.receivedAt).toLocaleString('en-US')}</p>
-              <p><strong>Reference No:</strong> ${webhook.webhookId}</p>
+            <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3; margin: 20px 0;">
+              <p style="margin: 0 0 15px 0; line-height: 1.6;"><strong>Transaction Time:</strong> ${new Date(webhook.receivedAt).toLocaleString('en-US')}</p>
+              <p style="margin: 0 0 15px 0; line-height: 1.6;"><strong>Reference No:</strong> ${webhook.webhookId}</p>
             </div>
             
-            <div class="transaction-details">
-              <h3>📋 Transaction Details</h3>
+            <div style="background-color: #f8f9fa; padding: 30px; border-radius: 15px; margin: 25px 0; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+              <h3 style="margin: 0 0 20px 0; color: #495057; font-size: 20px; text-align: center;">📋 Transaction Details</h3>
               ${this.generateTransactionDetails(webhook)}
             </div>
           </div>
           
-          <div class="footer">
-            <p>This is an automated notification from Magna Porta</p>
-            <p>Please do not reply to this email</p>
+          <div style="background-color: #f8f9fa; padding: 30px; text-align: center; color: #6c757d; font-size: 14px;">
+            <p style="margin: 0 0 15px 0; line-height: 1.6;">This is an automated notification from Magna Porta</p>
+            <p style="margin: 0 0 15px 0; line-height: 1.6;">Please do not reply to this email</p>
           </div>
         </div>
       </body>
@@ -312,13 +203,13 @@ export class WebhookMailSchedulerService {
   private generateFallbackEmailContent(webhook: any, reason: string, company?: any): string {
     const receivedTime = new Date(webhook.receivedAt).toLocaleString('tr-TR');
     const companyInfo = company ? `
-          <div class="field">
-            <span class="label">Company:</span>
-            <span class="value">${company.name}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Company:</span>
+            <span style="color: #212529;">${company.name}</span>
           </div>
-          <div class="field">
-            <span class="label">Company ID:</span>
-            <span class="value">${company.id}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Company ID:</span>
+            <span style="color: #212529;">${company.id}</span>
           </div>
     ` : '';
     
@@ -332,73 +223,62 @@ export class WebhookMailSchedulerService {
       <head>
         <meta charset="UTF-8">
         <title>Fallback Webhook Bildirimi</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { background-color: #fff3cd; padding: 15px; border-radius: 5px; border: 1px solid #ffeaa7; }
-          .warning { background-color: #f8d7da; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb; margin: 15px 0; }
-          .content { margin: 20px 0; }
-          .field { margin: 10px 0; }
-          .label { font-weight: bold; color: #495057; }
-          .value { color: #212529; }
-          .data-section { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; }
-          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 12px; }
-        </style>
       </head>
-      <body>
-        <div class="header">
+      <body style="font-family: Arial, sans-serif; margin: 20px;">
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border: 1px solid #ffeaa7;">
           <div style="text-align: center; margin-bottom: 20px;">
             <img src="${this.LOGO_URL}" 
                  alt="Magna Porta" 
                  style="max-width: 200px; height: auto; border-radius: 8px;">
           </div>
-          <h2>⚠️ Fallback Webhook Notification</h2>
-          <p>This email has been sent to admin as fallback</p>
+          <h2 style="margin: 0 0 15px 0;">⚠️ Fallback Webhook Notification</h2>
+          <p style="margin: 0;">This email has been sent to admin as fallback</p>
         </div>
         
-        <div class="warning">
-          <h3>🚨 Mail Asıl Alıcıya Gönderilemedi!</h3>
-          <p><strong>Sebep:</strong> ${reasonText}</p>
-          <p><strong>Account ID:</strong> ${webhook.accountId}</p>
+        <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb; margin: 15px 0;">
+          <h3 style="margin: 0 0 15px 0;">🚨 Mail Asıl Alıcıya Gönderilemedi!</h3>
+          <p style="margin: 0 0 10px 0;"><strong>Sebep:</strong> ${reasonText}</p>
+          <p style="margin: 0;"><strong>Account ID:</strong> ${webhook.accountId}</p>
         </div>
         
-        <div class="content">
-          <div class="field">
-            <span class="label">Webhook ID:</span>
-            <span class="value">${webhook.webhookId}</span>
+        <div style="margin: 20px 0;">
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Webhook ID:</span>
+            <span style="color: #212529;">${webhook.webhookId}</span>
           </div>
           
-          <div class="field">
-            <span class="label">Webhook Name:</span>
-            <span class="value">${webhook.webhookName}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Webhook Name:</span>
+            <span style="color: #212529;">${webhook.webhookName}</span>
           </div>
           
-          <div class="field">
-            <span class="label">Account ID:</span>
-            <span class="value">${webhook.accountId}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Account ID:</span>
+            <span style="color: #212529;">${webhook.accountId}</span>
           </div>
           
           ${companyInfo}
           
-          <div class="field">
-            <span class="label">Alınma Zamanı:</span>
-            <span class="value">${receivedTime}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Alınma Zamanı:</span>
+            <span style="color: #212529;">${receivedTime}</span>
           </div>
           
-          <div class="field">
-            <span class="label">Oluşturulma Zamanı:</span>
-            <span class="value">${new Date(webhook.createdAt).toLocaleString('tr-TR')}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Oluşturulma Zamanı:</span>
+            <span style="color: #212529;">${new Date(webhook.createdAt).toLocaleString('tr-TR')}</span>
           </div>
         </div>
         
-        <div class="data-section">
-          <h3>📊 Webhook Data</h3>
-          <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto;">${JSON.stringify(webhook.dataJson, null, 2)}</pre>
+        <div style="background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3 style="margin: 0 0 15px 0;">📊 Webhook Data</h3>
+          <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; margin: 0;">${JSON.stringify(webhook.dataJson, null, 2)}</pre>
         </div>
         
-        <div class="footer">
-          <p>Bu mail fallback olarak admin'e gönderilmiştir.</p>
-          <p>Asıl alıcıya gönderilememe sebebi: ${reasonText}</p>
-          <p>Magna Porta API - Webhook Notification Service</p>
+        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 12px;">
+          <p style="margin: 0 0 10px 0;">Bu mail fallback olarak admin'e gönderilmiştir.</p>
+          <p style="margin: 0 0 10px 0;">Asıl alıcıya gönderilememe sebebi: ${reasonText}</p>
+          <p style="margin: 0;">Magna Porta API - Webhook Notification Service</p>
         </div>
       </body>
       </html>
@@ -596,237 +476,61 @@ export class WebhookMailSchedulerService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Payment Received</title>
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-          }
-          
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-          }
-          
-          .header {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            padding: 30px;
-            text-align: center;
-            color: white;
-          }
-          
-          .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-          }
-          
-          .logo-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #ff6b35;
-            border-radius: 8px;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-          }
-          
-          .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-          }
-          
-          .main-heading {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: white;
-          }
-          
-          .sub-heading {
-            font-size: 16px;
-            opacity: 0.9;
-            font-weight: 400;
-          }
-          
-          .content {
-            padding: 40px 30px;
-          }
-          
-          .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #555;
-          }
-          
-          .description {
-            font-size: 16px;
-            margin-bottom: 30px;
-            color: #666;
-            line-height: 1.8;
-          }
-          
-          .summary-box {
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid #e9ecef;
-          }
-          
-          .summary-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #333;
-          }
-          
-          .summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-          }
-          
-          .summary-item:last-child {
-            border-bottom: none;
-          }
-          
-          .summary-label {
-            font-size: 14px;
-            color: #6c757d;
-            font-weight: 500;
-          }
-          
-          .summary-value {
-            font-size: 14px;
-            color: #333;
-            font-weight: 600;
-            text-align: right;
-          }
-          
-          .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-          }
-          
-          .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-          }
-          
-          .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-          }
-          
-          .footer-text {
-            font-size: 12px;
-            color: #6c757d;
-          }
-          
-          @media (max-width: 600px) {
-            .container {
-              margin: 10px;
-              border-radius: 8px;
-            }
-            
-            .header, .content {
-              padding: 20px;
-            }
-            
-            .main-heading {
-              font-size: 24px;
-            }
-            
-            .summary-box {
-              padding: 20px;
-            }
-          }
-        </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏠</div>
-              <div class="logo-text">Magna Porta</div>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
+            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
+              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
           </div>
-            <h1 class="main-heading">Payment Successfully Received!</h1>
-            <p class="sub-heading">Your account has been credited</p>
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Payment Successfully Received!</h1>
+            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your account has been credited</p>
           </div>
           
-          <div class="content">
-            <p class="greeting">Hello,</p>
-            <p class="description">
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
               Great news! Your account has received a payment of <strong>${amount} ${currency}</strong>.<br>
               Here's a summary of this transaction:
             </p>
             
-            <div class="summary-box">
-              <h3 class="summary-title">Transaction Summary</h3>
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transaction Summary</h3>
               
-              <div class="summary-item">
-                <span class="summary-label">Transaction Type:</span>
-                <span class="summary-value">Payment Received</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction Type:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">Payment Received</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Amount:</span>
-                <span class="summary-value">${amount} ${currency}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Amount:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${amount} ${currency}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Transaction ID:</span>
-                <span class="summary-value">${transactionId}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${transactionId}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Date:</span>
-                <span class="summary-value">${date}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Status:</span>
-                <span class="summary-value">✅ Completed</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Completed</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">View Transaction</a>
+              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Transaction</a>
             </div>
           </div>
           
-          <div class="footer">
-            <p class="footer-text">
+          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+            <p style="font-size: 12px; color: #6c757d; margin: 0;">
               This email was sent by Magna Porta. If you have any questions, please contact our support team.
             </p>
           </div>
@@ -852,238 +556,61 @@ export class WebhookMailSchedulerService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Transfer Completed</title>
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-          }
-          
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-          }
-          
-          .header {
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-            padding: 30px;
-            text-align: center;
-            color: white;
-          }
-          
-          .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-          }
-          
-          .logo-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #ff6b35;
-            border-radius: 8px;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-          }
-          
-          .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-          }
-          
-          .main-heading {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: white;
-          }
-          
-          .sub-heading {
-            font-size: 16px;
-            opacity: 0.9;
-            font-weight: 400;
-          }
-          
-          .content {
-            padding: 40px 30px;
-          }
-          
-          .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #555;
-          }
-          
-          .description {
-            font-size: 16px;
-            margin-bottom: 30px;
-            color: #666;
-            line-height: 1.8;
-          }
-          
-          .summary-box {
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid #e9ecef;
-          }
-          
-          .summary-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #333;
-          }
-          
-          .summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-          }
-          
-          .summary-item:last-child {
-            border-bottom: none;
-          }
-          
-          .summary-label {
-            font-size: 14px;
-            color: #6c757d;
-            font-weight: 500;
-          }
-          
-          .summary-value {
-            font-size: 14px;
-            color: #333;
-            font-weight: 600;
-            text-align: right;
-          }
-          
-          .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-            color: white;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
-          }
-          
-          .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
-          }
-          
-          .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-            margin-top: 20px;
-          }
-          
-          .footer-text {
-            font-size: 12px;
-            color: #6c757d;
-          }
-          
-          @media (max-width: 600px) {
-            .container {
-              margin: 10px;
-              border-radius: 8px;
-            }
-            
-            .header, .content {
-              padding: 20px;
-            }
-            
-            .main-heading {
-              font-size: 24px;
-            }
-            
-            .summary-box {
-              padding: 20px;
-            }
-          }
-        </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏠</div>
-              <div class="logo-text">Magna Porta</div>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); padding: 30px; text-align: center; color: white;">
+            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
+              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
           </div>
-            <h1 class="main-heading">Transfer Successfully Completed!</h1>
-            <p class="sub-heading">Your transfer has been processed</p>
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Transfer Successfully Completed!</h1>
+            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer has been processed</p>
           </div>
           
-          <div class="content">
-            <p class="greeting">Hello,</p>
-            <p class="description">
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
               Your transfer of <strong>${amount} ${currency}</strong> has been successfully completed.<br>
               Here's a summary of this transaction:
             </p>
             
-            <div class="summary-box">
-              <h3 class="summary-title">Transfer Summary</h3>
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transfer Summary</h3>
               
-              <div class="summary-item">
-                <span class="summary-label">Transfer Type:</span>
-                <span class="summary-value">Connected Account Transfer</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer Type:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">Connected Account Transfer</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Amount:</span>
-                <span class="summary-value">${amount} ${currency}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Amount:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${amount} ${currency}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Transaction ID:</span>
-                <span class="summary-value">${transactionId}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${transactionId}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Date:</span>
-                <span class="summary-value">${date}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Status:</span>
-                <span class="summary-value">✅ Completed</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Completed</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">Transferi Görüntüle</a>
+              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);">Transferi Görüntüle</a>
             </div>
           </div>
           
-          <div class="footer">
-            <p class="footer-text">
+          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef; margin-top: 20px;">
+            <p style="font-size: 12px; color: #6c757d; margin: 0;">
               Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
             </p>
           </div>
@@ -1112,244 +639,66 @@ export class WebhookMailSchedulerService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Currency Conversion Completed</title>
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-          }
-          
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-          }
-          
-          .header {
-            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
-            padding: 30px;
-            text-align: center;
-            color: white;
-          }
-          
-          .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-          }
-          
-          .logo-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #ff6b35;
-            border-radius: 8px;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-          }
-          
-          .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-          }
-          
-          .main-heading {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: white;
-          }
-          
-          .sub-heading {
-            font-size: 16px;
-            opacity: 0.9;
-            font-weight: 400;
-          }
-          
-          .content {
-            padding: 40px 30px;
-          }
-          
-          .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #555;
-          }
-          
-          .description {
-            font-size: 16px;
-            margin-bottom: 30px;
-            color: #666;
-            line-height: 1.8;
-          }
-          
-          .summary-box {
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid #e9ecef;
-          }
-          
-          .summary-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #333;
-          }
-          
-          .summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-            margin-bottom: 10px;
-          }
-          
-          .summary-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-          }
-          
-          .summary-label {
-            font-size: 14px;
-            color: #6c757d;
-            font-weight: 500;
-          }
-          
-          .summary-value {
-            font-size: 14px;
-            color: #333;
-            font-weight: 600;
-            text-align: right;
-          }
-          
-          .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
-            color: white;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);
-          }
-          
-          .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(111, 66, 193, 0.4);
-          }
-          
-          .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-          }
-          
-          .footer-text {
-            font-size: 12px;
-            color: #6c757d;
-          }
-          
-          @media (max-width: 600px) {
-            .container {
-              margin: 10px;
-              border-radius: 8px;
-            }
-            
-            .header, .content {
-              padding: 20px;
-            }
-            
-            .main-heading {
-              font-size: 24px;
-            }
-            
-            .summary-box {
-              padding: 20px;
-            }
-          }
-        </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏠</div>
-              <div class="logo-text">Magna Porta</div>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); padding: 30px; text-align: center; color: white;">
+            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
+              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
           </div>
-            <h1 class="main-heading">Currency Conversion Completed!</h1>
-            <p class="sub-heading">Your conversion has been processed</p>
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Currency Conversion Completed!</h1>
+            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your conversion has been processed</p>
           </div>
           
-          <div class="content">
-            <p class="greeting">Hello,</p>
-            <p class="description">
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
               Your currency conversion has been successfully completed.<br>
               Here's a summary of this transaction:
             </p>
             
-            <div class="summary-box">
-              <h3 class="summary-title">Conversion Summary</h3>
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Conversion Summary</h3>
               
-              <div class="summary-item">
-                <span class="summary-label">Source Amount:</span>
-                <span class="summary-value">${sourceAmount} ${sourceCurrency}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Source Amount:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${sourceAmount} ${sourceCurrency}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Target Amount:</span>
-                <span class="summary-value">${targetAmount} ${targetCurrency}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Target Amount:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${targetAmount} ${targetCurrency}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Exchange Rate:</span>
-                <span class="summary-value">1 ${sourceCurrency} = ${rate} ${targetCurrency}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Exchange Rate:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">1 ${sourceCurrency} = ${rate} ${targetCurrency}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Transaction ID:</span>
-                <span class="summary-value">${transactionId}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${transactionId}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Date:</span>
-                <span class="summary-value">${date}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Status:</span>
-                <span class="summary-value">✅ Completed</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Completed</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">View Conversion</a>
+              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);">View Conversion</a>
             </div>
           </div>
           
-          <div class="footer">
-            <p class="footer-text">
+          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+            <p style="font-size: 12px; color: #6c757d; margin: 0;">
               Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
             </p>
           </div>
@@ -1373,245 +722,67 @@ export class WebhookMailSchedulerService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Currency Conversion Settled</title>
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-          }
-          
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-          }
-          
-          .header {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            padding: 30px;
-            text-align: center;
-            color: white;
-          }
-          
-          .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-          }
-          
-          .logo-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #ff6b35;
-            border-radius: 8px;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-          }
-          
-          .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-          }
-          
-          .main-heading {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: white;
-          }
-          
-          .sub-heading {
-            font-size: 16px;
-            opacity: 0.9;
-            font-weight: 400;
-          }
-          
-          .content {
-            padding: 40px 30px;
-          }
-          
-          .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #555;
-          }
-          
-          .description {
-            font-size: 16px;
-            margin-bottom: 30px;
-            color: #666;
-            line-height: 1.8;
-          }
-          
-          .summary-box {
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid #e9ecef;
-          }
-          
-          .summary-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #333;
-          }
-          
-          .summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-            margin-bottom: 10px;
-          }
-          
-          .summary-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-          }
-          
-          .summary-label {
-            font-size: 14px;
-            color: #6c757d;
-            font-weight: 500;
-          }
-          
-          .summary-value {
-            font-size: 14px;
-            color: #333;
-            font-weight: 600;
-            text-align: right;
-          }
-          
-          .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-          }
-          
-          .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-          }
-          
-          .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-          }
-          
-          .footer-text {
-            font-size: 12px;
-            color: #6c757d;
-          }
-          
-          @media (max-width: 600px) {
-            .container {
-              margin: 10px;
-              border-radius: 8px;
-            }
-            
-            .header, .content {
-              padding: 20px;
-            }
-            
-            .main-heading {
-              font-size: 24px;
-            }
-            
-            .summary-box {
-              padding: 20px;
-            }
-          }
-        </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1 class="main-heading">Currency Conversion Settled!</h1>
-            <p class="sub-heading">Your conversion has been successfully processed</p>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Currency Conversion Settled!</h1>
+            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your conversion has been successfully processed</p>
           </div>
           
-          <div class="content">
-            <p class="greeting">Hello,</p>
-            <p class="description">
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
               Your currency conversion has been successfully completed and settled.<br>
               Here's a detailed summary of this transaction:
             </p>
             
-            <div class="summary-box">
-              <h3 class="summary-title">Conversion Transaction Summary</h3>
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Conversion Transaction Summary</h3>
               
-              <div class="summary-item">
-                <span class="summary-label">Reference ID:</span>
-                <span class="summary-value">${conversionData.shortReferenceId}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Reference ID:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.shortReferenceId}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Currency Pair:</span>
-                <span class="summary-value">${conversionData.currencyPair}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Currency Pair:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.currencyPair}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Buy Amount:</span>
-                <span class="summary-value">${conversionData.buyAmount} ${conversionData.buyCurrency}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Buy Amount:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.buyAmount} ${conversionData.buyCurrency}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Sell Amount:</span>
-                <span class="summary-value">${conversionData.sellAmount} ${conversionData.sellCurrency}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Sell Amount:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.sellAmount} ${conversionData.sellCurrency}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Client Rate:</span>
-                <span class="summary-value">1 ${conversionData.buyCurrency} = ${conversionData.clientRate} ${conversionData.sellCurrency}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Client Rate:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">1 ${conversionData.buyCurrency} = ${conversionData.clientRate} ${conversionData.sellCurrency}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Conversion Date:</span>
-                <span class="summary-value">${conversionData.conversionDate}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Conversion Date:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${conversionData.conversionDate}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Status:</span>
-                <span class="summary-value">✅ ${conversionData.status}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ ${conversionData.status}</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">View Conversion Details</a>
+              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Conversion Details</a>
             </div>
           </div>
           
-          <div class="footer">
-            <p class="footer-text">
+          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+            <p style="font-size: 12px; color: #6c757d; margin: 0;">
               Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
             </p>
           </div>
@@ -1639,247 +810,71 @@ export class WebhookMailSchedulerService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Transfer Processed</title>
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-          }
-          
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-          }
-          
-          .header {
-            background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
-            padding: 30px;
-            text-align: center;
-            color: white;
-          }
-          
-          .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-          }
-          
-          .logo-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #ff6b35;
-            border-radius: 8px;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-          }
-          
-          .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-          }
-          
-          .main-heading {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: white;
-          }
-          
-          .sub-heading {
-            font-size: 16px;
-            opacity: 0.9;
-            font-weight: 400;
-          }
-          
-          .content {
-            padding: 40px 30px;
-          }
-          
-          .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #555;
-          }
-          
-          .description {
-            font-size: 16px;
-            margin-bottom: 30px;
-            color: #666;
-            line-height: 1.8;
-          }
-          
-          .summary-box {
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid #e9ecef;
-          }
-          
-          .summary-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #333;
-          }
-          
-          .summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-          }
-          
-          .summary-item:last-child {
-            border-bottom: none;
-          }
-          
-          .summary-label {
-            font-size: 14px;
-            color: #6c757d;
-            font-weight: 500;
-          }
-          
-          .summary-value {
-            font-size: 14px;
-            color: #333;
-            font-weight: 600;
-            text-align: right;
-          }
-          
-          .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
-            color: white;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);
-          }
-          
-          .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(253, 126, 20, 0.4);
-          }
-          
-          .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-          }
-          
-          .footer-text {
-            font-size: 12px;
-            color: #6c757d;
-          }
-          
-          @media (max-width: 600px) {
-            .container {
-              margin: 10px;
-              border-radius: 8px;
-            }
-            
-            .header, .content {
-              padding: 20px;
-            }
-            
-            .main-heading {
-              font-size: 24px;
-            }
-            
-            .summary-box {
-              padding: 20px;
-            }
-          }
-        </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏠</div>
-              <div class="logo-text">Magna Porta</div>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%); padding: 30px; text-align: center; color: white;">
+            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
+              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
           </div>
-            <h1 class="main-heading">Transfer Successfully Processed!</h1>
-            <p class="sub-heading">Your transfer has been completed</p>
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Transfer Successfully Processed!</h1>
+            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer has been completed</p>
           </div>
           
-          <div class="content">
-            <p class="greeting">Hello,</p>
-            <p class="description">
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
               Your transfer of <strong>${amount} ${currency}</strong> has been successfully processed.<br>
               Here's a summary of this transaction:
             </p>
             
-            <div class="summary-box">
-              <h3 class="summary-title">Transfer Summary</h3>
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transfer Summary</h3>
               
-              <div class="summary-item">
-                <span class="summary-label">Transfer Type:</span>
-                <span class="summary-value">General Transfer</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer Type:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">General Transfer</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Amount:</span>
-                <span class="summary-value">${amount} ${currency}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Amount:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${amount} ${currency}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Source Account:</span>
-                <span class="summary-value">${sourceAccount}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Source Account:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${sourceAccount}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Destination Account:</span>
-                <span class="summary-value">${destinationAccount}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Destination Account:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${destinationAccount}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Transaction ID:</span>
-                <span class="summary-value">${transactionId}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transaction ID:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${transactionId}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Date:</span>
-                <span class="summary-value">${date}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Status:</span>
-                <span class="summary-value">✅ Completed</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Completed</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">Transferi Görüntüle</a>
+              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);">Transferi Görüntüle</a>
             </div>
           </div>
           
-          <div class="footer">
-            <p class="footer-text">
+          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+            <p style="font-size: 12px; color: #6c757d; margin: 0;">
               Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
             </p>
           </div>
@@ -1902,227 +897,51 @@ export class WebhookMailSchedulerService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Account Update</title>
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-          }
-          
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-          }
-          
-          .header {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-            padding: 30px;
-            text-align: center;
-            color: white;
-          }
-          
-          .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-          }
-          
-          .logo-icon {
-            width: 40px;
-            webhook-mail-scheduler.service.ts
-            background-color: #ff6b35;
-            border-radius: 8px;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-          }
-          
-          .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-          }
-          
-          .main-heading {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: white;
-          }
-          
-          .sub-heading {
-            font-size: 16px;
-            opacity: 0.9;
-            font-weight: 400;
-          }
-          
-          .content {
-            padding: 40px 30px;
-          }
-          
-          .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #555;
-          }
-          
-          .description {
-            font-size: 16px;
-            margin-bottom: 30px;
-            color: #666;
-            line-height: 1.8;
-          }
-          
-          .summary-box {
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid #e9ecef;
-          }
-          
-          .summary-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #333;
-          }
-          
-          .summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-          }
-          
-          .summary-item:last-child {
-            border-bottom: none;
-          }
-          
-          .summary-label {
-            font-size: 14px;
-            color: #6c757d;
-            font-weight: 500;
-          }
-          
-          .summary-value {
-            font-size: 14px;
-            color: #333;
-            font-weight: 600;
-            text-align: right;
-          }
-          
-          .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-            color: white;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
-          }
-          
-          .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
-          }
-          
-          .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-          }
-          
-          .footer-text {
-            font-size: 12px;
-            color: #6c757d;
-          }
-          
-          @media (max-width: 600px) {
-            .container {
-              margin: 10px;
-              border-radius: 8px;
-            }
-            
-            .header, .content {
-              padding: 20px;
-            }
-            
-            .main-heading {
-              font-size: 24px;
-            }
-            
-            .summary-box {
-              padding: 20px;
-            }
-          }
-        </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏠</div>
-              <div class="logo-text">Magna Porta</div>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); padding: 30px; text-align: center; color: white;">
+            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+              <div style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">🏠</div>
+              <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
           </div>
-            <h1 class="main-heading">Account Updated</h1>
-            <p class="sub-heading">Your account has been updated</p>
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Account Updated</h1>
+            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your account has been updated</p>
           </div>
           
-          <div class="content">
-            <p class="greeting">Hello,</p>
-            <p class="description">
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hello,</p>
+            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
               Your Magna Porta account has been updated.<br>
               Here's a summary of this update:
             </p>
             
-            <div class="summary-box">
-              <h3 class="summary-title">Update Summary</h3>
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Update Summary</h3>
               
-              <div class="summary-item">
-                <span class="summary-label">Update Type:</span>
-                <span class="summary-value">${webhookName}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Update Type:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${webhookName}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Date:</span>
-                <span class="summary-value">${date}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Date:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${date}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Status:</span>
-                <span class="summary-value">✅ Updated</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status:</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">✅ Updated</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">View Details</a>
+              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);">View Details</a>
             </div>
           </div>
           
-          <div class="footer">
-            <p class="footer-text">
+          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+            <p style="font-size: 12px; color: #6c757d; margin: 0;">
               Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
             </p>
           </div>
@@ -2142,102 +961,102 @@ export class WebhookMailSchedulerService {
       case 'payout_transfer_funding_funded':
       case 'payout.transfer.funding.funded':
         return `
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Transfer Amount</span>
-              <span class="detail-value">${data.amount_beneficiary_receives || 0} ${data.transfer_currency || 'USD'}</span>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Amount</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.amount_beneficiary_receives || 0} ${data.transfer_currency || 'USD'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">To Recipient</span>
-              <span class="detail-value">${data.beneficiary?.bank_details?.account_name || 'N/A'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">To Recipient</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.beneficiary?.bank_details?.account_name || 'N/A'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Transfer Date</span>
-              <span class="detail-value">${data.transfer_date || 'N/A'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Date</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.transfer_date || 'N/A'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Reference</span>
-              <span class="detail-value">${data.reference || 'N/A'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Reference</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.reference || 'N/A'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <span class="detail-value success">Transfer Completed</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">Transfer Completed</span>
             </div>
           </div>
         `;
       case 'connected_account_transfer':
         return `
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Transfer Amount</span>
-              <span class="detail-value">${data.amount || 0} ${data.currency || 'USD'}</span>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Amount</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.amount || 0} ${data.currency || 'USD'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">From Account</span>
-              <span class="detail-value">${data.source_account || 'Source Account'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">From Account</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.source_account || 'Source Account'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">To Account</span>
-              <span class="detail-value">${data.destination_account || 'Destination Account'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">To Account</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.destination_account || 'Destination Account'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <span class="detail-value success">${data.status || 'Completed'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">${data.status || 'Completed'}</span>
             </div>
           </div>
         `;
       case 'conversion':
         return `
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Converted From</span>
-              <span class="detail-value">${data.source_amount || 0} ${data.source_currency || 'USD'}</span>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Converted From</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.source_amount || 0} ${data.source_currency || 'USD'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Converted To</span>
-              <span class="detail-value">${data.target_amount || 0} ${data.target_currency || 'USD'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Converted To</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.target_amount || 0} ${data.target_currency || 'USD'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Exchange Rate</span>
-              <span class="detail-value">1 ${data.source_currency || 'USD'} = ${data.rate || 0} ${data.target_currency || 'USD'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Exchange Rate</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">1 ${data.source_currency || 'USD'} = ${data.rate || 0} ${data.target_currency || 'USD'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <span class="detail-value success">Successfully Converted</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">Successfully Converted</span>
             </div>
           </div>
         `;
       case 'transfer':
         return `
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Transfer Amount</span>
-              <span class="detail-value">${data.amount || 0} ${data.currency || 'USD'}</span>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transfer Amount</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.amount || 0} ${data.currency || 'USD'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">From Account</span>
-              <span class="detail-value">${data.source_account || 'Source Account'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">From Account</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.source_account || 'Source Account'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">To Account</span>
-              <span class="detail-value">${data.destination_account || 'Destination Account'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">To Account</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${data.destination_account || 'Destination Account'}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <span class="detail-value success">${data.status || 'Successfully Processed'}</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">${data.status || 'Successfully Processed'}</span>
             </div>
           </div>
         `;
       default:
         return `
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Transaction Type</span>
-              <span class="detail-value">${webhook.webhookName}</span>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 20px;">
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Transaction Type</span>
+              <span style="display: block; font-size: 15px; font-weight: 600; color: #212529; line-height: 1.3;">${webhook.webhookName}</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <span class="detail-value success">Successfully Completed</span>
+            <div style="background-color: white; padding: 18px 15px; border-radius: 10px; border: 1px solid #e9ecef; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span style="display: block; font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 500;">Status</span>
+              <span style="display: block; font-size: 15px; font-weight: 700; color: #28a745; line-height: 1.3;">Successfully Completed</span>
             </div>
           </div>
         `;
@@ -2260,93 +1079,78 @@ export class WebhookMailSchedulerService {
       <head>
         <meta charset="UTF-8">
         <title>Admin Notification - Webhook Mail Delivery Report</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { background-color: #d4edda; padding: 15px; border-radius: 5px; border: 1px solid #c3e6cb; }
-          .success { background-color: #d1ecf1; padding: 15px; border-radius: 5px; border: 1px solid #bee5eb; margin: 15px 0; }
-          .content { margin: 20px 0; }
-          .field { margin: 10px 0; }
-          .label { font-weight: bold; color: #495057; }
-          .value { color: #212529; }
-          .users-section { background-color: #e2e3e5; padding: 15px; border-radius: 5px; margin: 15px 0; }
-          .webhook-content { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #007bff; }
-          .data-section { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; }
-          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 12px; }
-          .stats { display: flex; justify-content: space-between; margin: 15px 0; }
-          .stat-box { background-color: #f8f9fa; padding: 10px; border-radius: 5px; text-align: center; flex: 1; margin: 0 5px; }
-        </style>
       </head>
-      <body>
-        <div class="header">
+      <body style="font-family: Arial, sans-serif; margin: 20px;">
+        <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; border: 1px solid #c3e6cb;">
           <div style="text-align: center; margin-bottom: 20px;">
             <img src="${this.LOGO_URL}" 
                  alt="Magna Porta" 
                  style="max-width: 200px; height: auto; border-radius: 8px;">
           </div>
-          <h2>✅ Webhook Mail Successfully Delivered</h2>
-          <p>Webhook notification has been successfully delivered to relevant users</p>
+          <h2 style="margin: 0 0 15px 0;">✅ Webhook Mail Successfully Delivered</h2>
+          <p style="margin: 0;">Webhook notification has been successfully delivered to relevant users</p>
         </div>
         
-        <div class="success">
-          <h3>📧 Mail Delivery Summary</h3>
-          <div class="stats">
-            <div class="stat-box">
+        <div style="background-color: #d1ecf1; padding: 15px; border-radius: 5px; border: 1px solid #bee5eb; margin: 15px 0;">
+          <h3 style="margin: 0 0 15px 0;">📧 Mail Delivery Summary</h3>
+          <div style="display: flex; justify-content: space-between; margin: 15px 0;">
+            <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; text-align: center; flex: 1; margin: 0 5px;">
               <strong>Total Recipients</strong><br>
               <span style="font-size: 24px; color: #28a745;">${emailAddresses.length}</span>
             </div>
-            <div class="stat-box">
+            <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; text-align: center; flex: 1; margin: 0 5px;">
               <strong>Delivery Time</strong><br>
               <span style="color: #007bff;">${currentTime}</span>
             </div>
-            <div class="stat-box">
+            <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; text-align: center; flex: 1; margin: 0 5px;">
               <strong>Webhook Type</strong><br>
               <span style="color: #6f42c1;">${webhook.webhookName}</span>
             </div>
           </div>
         </div>
         
-        <div class="content">
-          <div class="field">
-            <span class="label">Webhook ID:</span>
-            <span class="value">${webhook.webhookId}</span>
+        <div style="margin: 20px 0;">
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Webhook ID:</span>
+            <span style="color: #212529;">${webhook.webhookId}</span>
           </div>
           
-          <div class="field">
-            <span class="label">Webhook Name:</span>
-            <span class="value">${webhook.webhookName}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Webhook Name:</span>
+            <span style="color: #212529;">${webhook.webhookName}</span>
           </div>
           
-          <div class="field">
-            <span class="label">Account ID:</span>
-            <span class="value">${webhook.accountId}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Account ID:</span>
+            <span style="color: #212529;">${webhook.accountId}</span>
           </div>
           
-          <div class="field">
-            <span class="label">Company:</span>
-            <span class="value">${company.name} (ID: ${company.id})</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Company:</span>
+            <span style="color: #212529;">${company.name} (ID: ${company.id})</span>
           </div>
           
-          <div class="field">
-            <span class="label">Company Status:</span>
-            <span class="value">${company.isActive ? '🟢 Active' : '🔴 Inactive'} | ${company.isVerified ? '✅ Verified' : '❌ Not Verified'}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Company Status:</span>
+            <span style="color: #212529;">${company.isActive ? '🟢 Active' : '🔴 Inactive'} | ${company.isVerified ? '✅ Verified' : '❌ Not Verified'}</span>
           </div>
           
-          <div class="field">
-            <span class="label">Received Time:</span>
-            <span class="value">${receivedTime}</span>
+          <div style="margin: 10px 0;">
+            <span style="font-weight: bold; color: #495057;">Received Time:</span>
+            <span style="color: #212529;">${receivedTime}</span>
           </div>
         </div>
         
-        <div class="webhook-content">
-          <h3>📋 Webhook Content Sent to Users</h3>
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #007bff;">
+          <h3 style="margin: 0 0 15px 0;">📋 Webhook Content Sent to Users</h3>
           ${webhookCustomContent}
         </div>
         
-        <div class="users-section">
-          <h3>👥 Users Who Received the Mail</h3>
+        <div style="background-color: #e2e3e5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3 style="margin: 0 0 15px 0;">👥 Users Who Received the Mail</h3>
           <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px;">
-            <h4>Recipient Details:</h4>
-            <ul style="list-style: none; padding: 0;">
+            <h4 style="margin: 0 0 15px 0;">Recipient Details:</h4>
+            <ul style="list-style: none; padding: 0; margin: 0;">
               ${users.map((user, index) => `
                 <li style="padding: 10px; margin: 5px 0; background-color: white; border-radius: 3px; border-left: 3px solid ${user.isActive ? '#28a745' : '#dc3545'};">
                   <strong>${index + 1}. ${user.firstName} ${user.lastName}</strong><br>
@@ -2361,16 +1165,16 @@ export class WebhookMailSchedulerService {
           </div>
         </div>
         
-        <div class="data-section">
-          <h3>📊 Full Webhook Data</h3>
-          <pre style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px;">${JSON.stringify(webhook.dataJson, null, 2)}</pre>
+        <div style="background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3 style="margin: 0 0 15px 0;">📊 Full Webhook Data</h3>
+          <pre style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; margin: 0;">${JSON.stringify(webhook.dataJson, null, 2)}</pre>
         </div>
         
-        <div class="footer">
-          <p><strong>Mail Delivery Report Generated:</strong> ${currentTime}</p>
-          <p><strong>Total Recipients:</strong> ${emailAddresses.length} users</p>
-          <p><strong>Company:</strong> ${company.name} (${company.isActive ? 'Active' : 'Inactive'})</p>
-          <p>Magna Porta API - Webhook Notification Service</p>
+        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 12px;">
+          <p style="margin: 0 0 10px 0;"><strong>Mail Delivery Report Generated:</strong> ${currentTime}</p>
+          <p style="margin: 0 0 10px 0;"><strong>Total Recipients:</strong> ${emailAddresses.length} users</p>
+          <p style="margin: 0 0 10px 0;"><strong>Company:</strong> ${company.name} (${company.isActive ? 'Active' : 'Inactive'})</p>
+          <p style="margin: 0;">Magna Porta API - Webhook Notification Service</p>
         </div>
 
       </body>
@@ -2392,263 +1196,85 @@ export class WebhookMailSchedulerService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</title>
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-          }
-          
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-          }
-          
-          .header {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            padding: 30px;
-            text-align: center;
-            color: white;
-          }
-          
-          .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-          }
-          
-          .logo-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #ff6b35;
-            border-radius: 8px;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-          }
-          
-          .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-          }
-          
-          .main-heading {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: white;
-          }
-          
-          .sub-heading {
-            font-size: 16px;
-            opacity: 0.9;
-            font-weight: 400;
-          }
-          
-          .content {
-            padding: 40px 30px;
-          }
-          
-          .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #555;
-          }
-          
-          .description {
-            font-size: 16px;
-            margin-bottom: 30px;
-            color: #666;
-            line-height: 1.8;
-          }
-          
-          .summary-box {
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid #e9ecef;
-          }
-          
-          .summary-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #333;
-          }
-          
-          .summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-            margin-bottom: 10px;
-          }
-          
-          .summary-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-          }
-          
-          .summary-label {
-            font-size: 14px;
-            color: #6c757d;
-            font-weight: 500;
-          }
-          
-          .summary-value {
-            font-size: 14px;
-            color: #333;
-            font-weight: 600;
-            text-align: right;
-          }
-          
-          .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-          }
-          
-          .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-          }
-          
-          .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-          }
-          
-          .footer-text {
-            font-size: 12px;
-            color: #6c757d;
-          }
-          
-          @media (max-width: 600px) {
-            .container {
-              margin: 10px;
-              border-radius: 8px;
-            }
-            
-            .header, .content {
-              padding: 20px;
-            }
-            
-            .main-heading {
-              font-size: 24px;
-            }
-            
-            .summary-box {
-              padding: 20px;
-            }
-          }
-        </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1 class="main-heading">Your transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</h1>
-            <p class="sub-heading">Your transfer should arrive in 0-2 business days</p>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Your transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</h1>
+            <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer should arrive in 0-2 business days</p>
           </div>
           
-          <div class="content">
-            <p class="greeting">Hi there,</p>
-            <p class="description">
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hi there,</p>
+            <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
               Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> should arrive in 0-2 business days from <strong>${payoutData.transfer_date || 'N/A'}</strong>. Here's a summary of this transfer:
             </p>
             
-            <div class="summary-box">
-              <h3 class="summary-title">Transfer Summary</h3>
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Transfer Summary</h3>
               
-              <div class="summary-item">
-                <span class="summary-label">Airwallex account</span>
-                <span class="summary-value">${payoutData.payer?.company_name || 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Airwallex account</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.payer?.company_name || 'N/A'}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Transfer amount</span>
-                <span class="summary-value">${payoutData.amount_beneficiary_receives || 0} ${payoutData.transfer_currency || 'USD'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer amount</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.amount_beneficiary_receives || 0} ${payoutData.transfer_currency || 'USD'}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">To</span>
-                <span class="summary-value">${payoutData.beneficiary?.bank_details?.account_name || 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">To</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.beneficiary?.bank_details?.account_name || 'N/A'}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Transfer date</span>
-                <span class="summary-value">${payoutData.transfer_date || 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer date</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.transfer_date || 'N/A'}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Transfer method</span>
-                <span class="summary-value">${payoutData.transfer_method || 'BANK_TRANSFER'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer method</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.transfer_method || 'BANK_TRANSFER'}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Transfer ID</span>
-                <span class="summary-value">${payoutData.id || 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Transfer ID</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.id || 'N/A'}</span>
               </div>
             </div>
             
-            <div class="summary-box">
-              <h3 class="summary-title">Additional Details</h3>
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">Additional Details</h3>
               
-              <div class="summary-item">
-                <span class="summary-label">Reference</span>
-                <span class="summary-value">${payoutData.reference || 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Reference</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.reference || 'N/A'}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">IBAN</span>
-                <span class="summary-value">•••• ${payoutData.beneficiary?.bank_details?.iban?.slice(-4) || 'N/A'} - ${payoutData.beneficiary?.bank_details?.swift_code || 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">IBAN</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">•••• ${payoutData.beneficiary?.bank_details?.iban?.slice(-4) || 'N/A'} - ${payoutData.beneficiary?.bank_details?.swift_code || 'N/A'}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Bank</span>
-                <span class="summary-value">${payoutData.beneficiary?.bank_details?.bank_name || 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 10px;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Bank</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.beneficiary?.bank_details?.bank_name || 'N/A'}</span>
               </div>
               
-              <div class="summary-item">
-                <span class="summary-label">Account Currency</span>
-                <span class="summary-value">${payoutData.beneficiary?.bank_details?.account_currency || 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Account Currency</span>
+                <span style="font-size: 14px; color: #333; font-weight: 600; text-align: right;">${payoutData.beneficiary?.bank_details?.account_currency || 'N/A'}</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">View Transfer Details</a>
+              <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Transfer Details</a>
             </div>
           </div>
           
-          <div class="footer">
-            <p class="footer-text">
+          <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+            <p style="font-size: 12px; color: #6c757d; margin: 0;">
               This email was sent by Magna Porta. If you have any questions, please contact our support team.
             </p>
           </div>

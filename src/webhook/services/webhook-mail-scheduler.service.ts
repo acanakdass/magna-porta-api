@@ -558,7 +558,13 @@ export class WebhookMailSchedulerService {
     
     switch (webhook.webhookName) {
       case 'payout_transfer_funding_funded':
-        return this.generatePaymentReceivedTemplate(data);
+        // Webhook data parser service'i kullanarak data'yı parse et
+        const parsedPayoutData = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
+        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData);
+      case 'payout.transfer.funding.funded':
+        // Webhook data parser service'i kullanarak data'yı parse et
+        const parsedPayoutData2 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
+        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData2);
       case 'connected_account_transfer':
         return this.generateTransferCompletedTemplate(data);
       case 'conversion':
@@ -1549,10 +1555,6 @@ export class WebhookMailSchedulerService {
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏠</div>
-              <div class="logo-text">Magna Porta</div>
-            </div>
             <h1 class="main-heading">Currency Conversion Settled!</h1>
             <p class="sub-heading">Your conversion has been successfully processed</p>
           </div>
@@ -2138,19 +2140,20 @@ export class WebhookMailSchedulerService {
     
     switch (webhook.webhookName) {
       case 'payout_transfer_funding_funded':
+      case 'payout.transfer.funding.funded':
         return `
           <div class="detail-grid">
             <div class="detail-item">
-              <span class="detail-label">Amount Received</span>
-              <span class="detail-value">${data.amount || 0} ${data.currency || 'USD'}</span>
+              <span class="detail-label">Transfer Amount</span>
+              <span class="detail-value">${data.amount_beneficiary_receives || 0} ${data.transfer_currency || 'USD'}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">From Account</span>
-              <span class="detail-value">${data.source_account || 'External Source'}</span>
+              <span class="detail-label">To Recipient</span>
+              <span class="detail-value">${data.beneficiary?.bank_details?.account_name || 'N/A'}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">To Account</span>
-              <span class="detail-value">Your Main Account</span>
+              <span class="detail-label">Transfer Date</span>
+              <span class="detail-value">${data.transfer_date || 'N/A'}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Reference</span>
@@ -2158,7 +2161,7 @@ export class WebhookMailSchedulerService {
             </div>
             <div class="detail-item">
               <span class="detail-label">Status</span>
-              <span class="detail-value success">Successfully Received</span>
+              <span class="detail-value success">Transfer Completed</span>
             </div>
           </div>
         `;
@@ -2370,6 +2373,286 @@ export class WebhookMailSchedulerService {
           <p>Magna Porta API - Webhook Notification Service</p>
         </div>
 
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Payout transfer funding funded template - özel payout.transfer.funding.funded webhook için
+   */
+  private generatePayoutTransferFundingFundedTemplate(data: any): string {
+    // PayoutTransferFundingFundedHookData tipinde data bekliyoruz
+    const payoutData = data;
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+          }
+          
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+          }
+          
+          .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #ff6b35;
+            border-radius: 8px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+          }
+          
+          .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+          }
+          
+          .main-heading {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: white;
+          }
+          
+          .sub-heading {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+          }
+          
+          .content {
+            padding: 40px 30px;
+          }
+          
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+          }
+          
+          .description {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.8;
+          }
+          
+          .summary-box {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+          }
+          
+          .summary-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+          }
+          
+          .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 10px;
+          }
+          
+          .summary-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+          }
+          
+          .summary-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+          }
+          
+          .summary-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+          }
+          
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+          }
+          
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+          }
+          
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+          }
+          
+          .footer-text {
+            font-size: 12px;
+            color: #6c757d;
+          }
+          
+          @media (max-width: 600px) {
+            .container {
+              margin: 10px;
+              border-radius: 8px;
+            }
+            
+            .header, .content {
+              padding: 20px;
+            }
+            
+            .main-heading {
+              font-size: 24px;
+            }
+            
+            .summary-box {
+              padding: 20px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 class="main-heading">Your transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</h1>
+            <p class="sub-heading">Your transfer should arrive in 0-2 business days</p>
+          </div>
+          
+          <div class="content">
+            <p class="greeting">Hi there,</p>
+            <p class="description">
+              Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> should arrive in 0-2 business days from <strong>${payoutData.transfer_date || 'N/A'}</strong>. Here's a summary of this transfer:
+            </p>
+            
+            <div class="summary-box">
+              <h3 class="summary-title">Transfer Summary</h3>
+              
+              <div class="summary-item">
+                <span class="summary-label">Airwallex account</span>
+                <span class="summary-value">${payoutData.payer?.company_name || 'N/A'}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Transfer amount</span>
+                <span class="summary-value">${payoutData.amount_beneficiary_receives || 0} ${payoutData.transfer_currency || 'USD'}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">To</span>
+                <span class="summary-value">${payoutData.beneficiary?.bank_details?.account_name || 'N/A'}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Transfer date</span>
+                <span class="summary-value">${payoutData.transfer_date || 'N/A'}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Transfer method</span>
+                <span class="summary-value">${payoutData.transfer_method || 'BANK_TRANSFER'}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Transfer ID</span>
+                <span class="summary-value">${payoutData.id || 'N/A'}</span>
+              </div>
+            </div>
+            
+            <div class="summary-box">
+              <h3 class="summary-title">Additional Details</h3>
+              
+              <div class="summary-item">
+                <span class="summary-label">Reference</span>
+                <span class="summary-value">${payoutData.reference || 'N/A'}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">IBAN</span>
+                <span class="summary-value">•••• ${payoutData.beneficiary?.bank_details?.iban?.slice(-4) || 'N/A'} - ${payoutData.beneficiary?.bank_details?.swift_code || 'N/A'}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Bank</span>
+                <span class="summary-value">${payoutData.beneficiary?.bank_details?.bank_name || 'N/A'}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Account Currency</span>
+                <span class="summary-value">${payoutData.beneficiary?.bank_details?.account_currency || 'N/A'}</span>
+              </div>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="#" class="cta-button">View Transfer Details</a>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p class="footer-text">
+              This email was sent by Magna Porta. If you have any questions, please contact our support team.
+            </p>
+          </div>
+        </div>
       </body>
       </html>
     `;

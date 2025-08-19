@@ -39,6 +39,17 @@ export class MailService {
         },
         // Gmail için özel ayarlar
         service: this.configService.get('SMTP_SERVICE', 'gmail'),
+        // Connection timeout ayarları
+        connectionTimeout: 60000, // 60 saniye
+        greetingTimeout: 30000,   // 30 saniye
+        socketTimeout: 60000,     // 60 saniye
+        // Connection pool ayarları
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+        // Rate limiting
+        rateLimit: 14, // Gmail için saniyede max 14 mail
+        rateDelta: 1000, // 1 saniye
       };
 
       this.transporter = nodemailer.createTransport(smtpConfig);
@@ -65,6 +76,10 @@ export class MailService {
           user: testAccount.user,
           pass: testAccount.pass,
         },
+        // Connection timeout ayarları
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
       });
 
       this.logger.log('Test SMTP hesabı oluşturuldu (Ethereal Email)');
@@ -77,34 +92,50 @@ export class MailService {
 
 
   async sendMail(mailOptions: MailOptions): Promise<SentMessageInfo> {
-    try {
-      const defaultFrom = this.configService.get('MAIL_FROM', 'noreply@magna-porta.com');
-      
-      const mailConfig = {
-        from: mailOptions.from || defaultFrom,
-        to: mailOptions.to,
-        subject: mailOptions.subject,
-        text: mailOptions.text,
-        html: mailOptions.html,
-        cc: mailOptions.cc,
-        bcc: mailOptions.bcc,
-        attachments: mailOptions.attachments,
-      };
+    const maxRetries = 3;
+    let lastError: Error;
 
-      const result = await this.transporter.sendMail(mailConfig);
-      
-      this.logger.log(`Mail başarıyla gönderildi: ${mailOptions.to}`);
-      
-      // Ethereal Email kullanılıyorsa preview URL'ini logla
-      if (result.messageId && result.previewURL) {
-        this.logger.log(`Mail preview: ${result.previewURL}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const defaultFrom = this.configService.get('MAIL_FROM', 'noreply@magna-porta.com');
+        
+        const mailConfig = {
+          from: mailOptions.from || defaultFrom,
+          to: mailOptions.to,
+          subject: mailOptions.subject,
+          text: mailOptions.text,
+          html: mailOptions.html,
+          cc: mailOptions.cc,
+          bcc: mailOptions.bcc,
+          attachments: mailOptions.attachments,
+        };
+
+        this.logger.log(`Mail gönderim denemesi ${attempt}/${maxRetries}: ${mailOptions.to}`);
+        const result = await this.transporter.sendMail(mailConfig);
+        
+        this.logger.log(`Mail başarıyla gönderildi: ${mailOptions.to}`);
+        
+        // Ethereal Email kullanılıyorsa preview URL'ini logla
+        if (result.messageId && result.previewURL) {
+          this.logger.log(`Mail preview: ${result.previewURL}`);
+        }
+        
+        return result;
+      } catch (error) {
+        lastError = error;
+        this.logger.warn(`Mail gönderim denemesi ${attempt}/${maxRetries} başarısız: ${error.message}`);
+        
+        if (attempt < maxRetries) {
+          // Bir sonraki denemeden önce bekle
+          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+          this.logger.log(`${delay}ms sonra tekrar denenecek...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
-      
-      return result;
-    } catch (error) {
-      this.logger.error('Mail gönderilemedi:', error.message);
-      throw new Error(`Mail gönderilemedi: ${error.message}`);
     }
+
+    this.logger.error(`Mail gönderilemedi (${maxRetries} deneme sonrası): ${lastError.message}`);
+    throw new Error(`Mail gönderilemedi (${maxRetries} deneme sonrası): ${lastError.message}`);
   }
 
   

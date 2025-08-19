@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PayoutTransferFundingFundedHookData } from '../models/payout-transfer-funding-funded-hook.model';
+import { ConversionSettledModel, ConversionSettledEmailData } from '../models/conversion-settled.model';
 
 @Injectable()
 export class WebhookDataParserService {
@@ -18,6 +19,9 @@ export class WebhookDataParserService {
         
         case 'conversion.new':
           return this.parseConversion(dataJson);
+        
+        case 'conversion.settled':
+          return this.parseConversionSettled(dataJson);
         
         case 'transfer.new':
           return this.parseTransfer(dataJson);
@@ -159,6 +163,23 @@ export class WebhookDataParserService {
       destination_account: data.destination_account || '',
       created_at: data.created_at || '',
       updated_at: data.updated_at || ''
+    };
+  }
+
+  /**
+   * Conversion settled webhook data'sını parse eder
+   */
+  private parseConversionSettled(data: any): ConversionSettledEmailData {
+    return {
+      shortReferenceId: data.short_reference_id || '',
+      buyCurrency: data.buy_currency || '',
+      buyAmount: data.buy_amount || 0,
+      sellCurrency: data.sell_currency || '',
+      sellAmount: data.sell_amount || 0,
+      clientRate: data.client_rate || 0,
+      conversionDate: data.conversion_date || '',
+      status: data.status || '',
+      currencyPair: data.currency_pair || ''
     };
   }
 }

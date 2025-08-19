@@ -5,6 +5,8 @@ import { WebhookService } from '../webhook.service';
 import { MailService } from '../../mail/mail.service';
 import { CompaniesService } from '../../company/companies.service';
 import { EmailTemplatesService, TransferNotificationData } from '../../mail/email-templates.service';
+import { ConversionSettledEmailData } from '../models/conversion-settled.model';
+import { WebhookDataParserService } from './webhook-data-parser.service';
 
 @Injectable()
 export class WebhookMailSchedulerService {
@@ -18,6 +20,7 @@ export class WebhookMailSchedulerService {
     private readonly companiesService: CompaniesService,
     private readonly configService: ConfigService,
     private readonly emailTemplatesService: EmailTemplatesService,
+    private readonly webhookDataParserService: WebhookDataParserService,
   ) {
     // Logo URL'ini environment'dan al, fallback olarak production URL
     this.LOGO_URL = this.configService.get('LOGO_URL', 'http://209.38.223.41:3001/assets/magnaporta-logos/logo_magna_porta.png');
@@ -560,6 +563,10 @@ export class WebhookMailSchedulerService {
         return this.generateTransferCompletedTemplate(data);
       case 'conversion':
         return this.generateConversionCompletedTemplate(data);
+      case 'conversion.settled':
+        // Webhook data parser service'i kullanarak data'yı parse et
+        const parsedData = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
+        return this.generateConversionSettledTemplate(parsedData);
       case 'transfer':
         return this.generateTransferProcessedTemplate(data);
       default:
@@ -576,13 +583,13 @@ export class WebhookMailSchedulerService {
     const transactionId = data.transaction_id || data.id || 'N/A';
     const date = new Date().toISOString().split('T')[0];
     
-    return `
+        return `
       <!DOCTYPE html>
-      <html lang="tr">
+      <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Ödeme Alındı</title>
+        <title>Payment Received</title>
         <style>
           * {
             margin: 0;
@@ -766,55 +773,55 @@ export class WebhookMailSchedulerService {
             <div class="logo">
               <div class="logo-icon">🏠</div>
               <div class="logo-text">Magna Porta</div>
-            </div>
-            <h1 class="main-heading">Ödeme Başarıyla Alındı!</h1>
-            <p class="sub-heading">Hesabınız kredilendi</p>
+          </div>
+            <h1 class="main-heading">Payment Successfully Received!</h1>
+            <p class="sub-heading">Your account has been credited</p>
           </div>
           
           <div class="content">
-            <p class="greeting">Merhaba,</p>
+            <p class="greeting">Hello,</p>
             <p class="description">
-              Harika haber! Hesabınıza <strong>${amount} ${currency}</strong> tutarında ödeme alındı.<br>
-              İşte bu işlemin özeti:
+              Great news! Your account has received a payment of <strong>${amount} ${currency}</strong>.<br>
+              Here's a summary of this transaction:
             </p>
             
             <div class="summary-box">
-              <h3 class="summary-title">İşlem Özeti</h3>
+              <h3 class="summary-title">Transaction Summary</h3>
               
               <div class="summary-item">
-                <span class="summary-label">İşlem Türü:</span>
-                <span class="summary-value">Ödeme Alındı</span>
+                <span class="summary-label">Transaction Type:</span>
+                <span class="summary-value">Payment Received</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Tutar:</span>
+                <span class="summary-label">Amount:</span>
                 <span class="summary-value">${amount} ${currency}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">İşlem ID:</span>
+                <span class="summary-label">Transaction ID:</span>
                 <span class="summary-value">${transactionId}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Tarih:</span>
+                <span class="summary-label">Date:</span>
                 <span class="summary-value">${date}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Durum:</span>
-                <span class="summary-value">✅ Tamamlandı</span>
+                <span class="summary-label">Status:</span>
+                <span class="summary-value">✅ Completed</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">İşlemi Görüntüle</a>
+              <a href="#" class="cta-button">View Transaction</a>
             </div>
           </div>
           
           <div class="footer">
             <p class="footer-text">
-              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+              This email was sent by Magna Porta. If you have any questions, please contact our support team.
             </p>
           </div>
         </div>
@@ -832,13 +839,13 @@ export class WebhookMailSchedulerService {
     const transactionId = data.transaction_id || data.id || 'N/A';
     const date = new Date().toISOString().split('T')[0];
     
-    return `
+        return `
       <!DOCTYPE html>
-      <html lang="tr">
+      <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Transfer Tamamlandı</title>
+        <title>Transfer Completed</title>
         <style>
           * {
             margin: 0;
@@ -1023,44 +1030,44 @@ export class WebhookMailSchedulerService {
             <div class="logo">
               <div class="logo-icon">🏠</div>
               <div class="logo-text">Magna Porta</div>
-            </div>
-            <h1 class="main-heading">Transfer Başarıyla Tamamlandı!</h1>
-            <p class="sub-heading">Transferiniz işlendi</p>
+          </div>
+            <h1 class="main-heading">Transfer Successfully Completed!</h1>
+            <p class="sub-heading">Your transfer has been processed</p>
           </div>
           
           <div class="content">
-            <p class="greeting">Merhaba,</p>
+            <p class="greeting">Hello,</p>
             <p class="description">
-              <strong>${amount} ${currency}</strong> tutarındaki transferiniz başarıyla tamamlandı.<br>
-              İşte bu işlemin özeti:
+              Your transfer of <strong>${amount} ${currency}</strong> has been successfully completed.<br>
+              Here's a summary of this transaction:
             </p>
             
             <div class="summary-box">
-              <h3 class="summary-title">Transfer Özeti</h3>
+              <h3 class="summary-title">Transfer Summary</h3>
               
               <div class="summary-item">
-                <span class="summary-label">Transfer Türü:</span>
-                <span class="summary-value">Bağlı Hesap Transferi</span>
+                <span class="summary-label">Transfer Type:</span>
+                <span class="summary-value">Connected Account Transfer</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Tutar:</span>
+                <span class="summary-label">Amount:</span>
                 <span class="summary-value">${amount} ${currency}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">İşlem ID:</span>
+                <span class="summary-label">Transaction ID:</span>
                 <span class="summary-value">${transactionId}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Tarih:</span>
+                <span class="summary-label">Date:</span>
                 <span class="summary-value">${date}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Durum:</span>
-                <span class="summary-value">✅ Tamamlandı</span>
+                <span class="summary-label">Status:</span>
+                <span class="summary-value">✅ Completed</span>
               </div>
             </div>
             
@@ -1092,13 +1099,13 @@ export class WebhookMailSchedulerService {
     const transactionId = data.transaction_id || data.id || 'N/A';
     const date = new Date().toISOString().split('T')[0];
     
-    return `
+        return `
       <!DOCTYPE html>
-      <html lang="tr">
+      <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Döviz Çevirisi Tamamlandı</title>
+        <title>Currency Conversion Completed</title>
         <style>
           * {
             margin: 0;
@@ -1284,54 +1291,320 @@ export class WebhookMailSchedulerService {
             <div class="logo">
               <div class="logo-icon">🏠</div>
               <div class="logo-text">Magna Porta</div>
-            </div>
-            <h1 class="main-heading">Döviz Çevirisi Tamamlandı!</h1>
-            <p class="sub-heading">Çeviriniz işlendi</p>
+          </div>
+            <h1 class="main-heading">Currency Conversion Completed!</h1>
+            <p class="sub-heading">Your conversion has been processed</p>
           </div>
           
           <div class="content">
-            <p class="greeting">Merhaba,</p>
+            <p class="greeting">Hello,</p>
             <p class="description">
-              Döviz çeviriniz başarıyla tamamlandı.<br>
-              İşte bu işlemin özeti:
+              Your currency conversion has been successfully completed.<br>
+              Here's a summary of this transaction:
             </p>
             
             <div class="summary-box">
-              <h3 class="summary-title">Çeviri Özeti</h3>
+              <h3 class="summary-title">Conversion Summary</h3>
               
               <div class="summary-item">
-                <span class="summary-label">Kaynak Tutar:</span>
+                <span class="summary-label">Source Amount:</span>
                 <span class="summary-value">${sourceAmount} ${sourceCurrency}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Hedef Tutar:</span>
+                <span class="summary-label">Target Amount:</span>
                 <span class="summary-value">${targetAmount} ${targetCurrency}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Döviz Kuru:</span>
+                <span class="summary-label">Exchange Rate:</span>
                 <span class="summary-value">1 ${sourceCurrency} = ${rate} ${targetCurrency}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">İşlem ID:</span>
+                <span class="summary-label">Transaction ID:</span>
                 <span class="summary-value">${transactionId}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Tarih:</span>
+                <span class="summary-label">Date:</span>
                 <span class="summary-value">${date}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Durum:</span>
-                <span class="summary-value">✅ Tamamlandı</span>
+                <span class="summary-label">Status:</span>
+                <span class="summary-value">✅ Completed</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">Çeviriyi Görüntüle</a>
+              <a href="#" class="cta-button">View Conversion</a>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p class="footer-text">
+              Bu e-posta Magna Porta tarafından gönderilmiştir. Sorularınız için destek ekibimizle iletişime geçin.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Conversion settled template - özel conversion.settled webhook için
+   */
+  private generateConversionSettledTemplate(data: any): string {
+    // ConversionSettledEmailData tipinde data bekliyoruz
+    const conversionData = data as ConversionSettledEmailData;
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Currency Conversion Settled</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+          }
+          
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+          }
+          
+          .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #ff6b35;
+            border-radius: 8px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+          }
+          
+          .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+          }
+          
+          .main-heading {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: white;
+          }
+          
+          .sub-heading {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+          }
+          
+          .content {
+            padding: 40px 30px;
+          }
+          
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+          }
+          
+          .description {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.8;
+          }
+          
+          .summary-box {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+          }
+          
+          .summary-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+          }
+          
+          .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 10px;
+          }
+          
+          .summary-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+          }
+          
+          .summary-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+          }
+          
+          .summary-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+          }
+          
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+          }
+          
+          .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+          }
+          
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+          }
+          
+          .footer-text {
+            font-size: 12px;
+            color: #6c757d;
+          }
+          
+          @media (max-width: 600px) {
+            .container {
+              margin: 10px;
+              border-radius: 8px;
+            }
+            
+            .header, .content {
+              padding: 20px;
+            }
+            
+            .main-heading {
+              font-size: 24px;
+            }
+            
+            .summary-box {
+              padding: 20px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">
+              <div class="logo-icon">🏠</div>
+              <div class="logo-text">Magna Porta</div>
+            </div>
+            <h1 class="main-heading">Currency Conversion Settled!</h1>
+            <p class="sub-heading">Your conversion has been successfully processed</p>
+          </div>
+          
+          <div class="content">
+            <p class="greeting">Hello,</p>
+            <p class="description">
+              Your currency conversion has been successfully completed and settled.<br>
+              Here's a detailed summary of this transaction:
+            </p>
+            
+            <div class="summary-box">
+              <h3 class="summary-title">Conversion Transaction Summary</h3>
+              
+              <div class="summary-item">
+                <span class="summary-label">Reference ID:</span>
+                <span class="summary-value">${conversionData.shortReferenceId}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Currency Pair:</span>
+                <span class="summary-value">${conversionData.currencyPair}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Buy Amount:</span>
+                <span class="summary-value">${conversionData.buyAmount} ${conversionData.buyCurrency}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Sell Amount:</span>
+                <span class="summary-value">${conversionData.sellAmount} ${conversionData.sellCurrency}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Client Rate:</span>
+                <span class="summary-value">1 ${conversionData.buyCurrency} = ${conversionData.clientRate} ${conversionData.sellCurrency}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Conversion Date:</span>
+                <span class="summary-value">${conversionData.conversionDate}</span>
+              </div>
+              
+              <div class="summary-item">
+                <span class="summary-label">Status:</span>
+                <span class="summary-value">✅ ${conversionData.status}</span>
+              </div>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="#" class="cta-button">View Conversion Details</a>
             </div>
           </div>
           
@@ -1357,13 +1630,13 @@ export class WebhookMailSchedulerService {
     const transactionId = data.transaction_id || data.id || 'N/A';
     const date = new Date().toISOString().split('T')[0];
     
-    return `
+        return `
       <!DOCTYPE html>
-      <html lang="tr">
+      <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Transfer İşlendi</title>
+        <title>Transfer Processed</title>
         <style>
           * {
             margin: 0;
@@ -1547,54 +1820,54 @@ export class WebhookMailSchedulerService {
             <div class="logo">
               <div class="logo-icon">🏠</div>
               <div class="logo-text">Magna Porta</div>
-            </div>
-            <h1 class="main-heading">Transfer Başarıyla İşlendi!</h1>
-            <p class="sub-heading">Transferiniz tamamlandı</p>
+          </div>
+            <h1 class="main-heading">Transfer Successfully Processed!</h1>
+            <p class="sub-heading">Your transfer has been completed</p>
           </div>
           
           <div class="content">
-            <p class="greeting">Merhaba,</p>
+            <p class="greeting">Hello,</p>
             <p class="description">
-              <strong>${amount} ${currency}</strong> tutarındaki transfer başarıyla işlendi.<br>
-              İşte bu işlemin özeti:
+              Your transfer of <strong>${amount} ${currency}</strong> has been successfully processed.<br>
+              Here's a summary of this transaction:
             </p>
             
             <div class="summary-box">
-              <h3 class="summary-title">Transfer Özeti</h3>
+              <h3 class="summary-title">Transfer Summary</h3>
               
               <div class="summary-item">
-                <span class="summary-label">Transfer Türü:</span>
-                <span class="summary-value">Genel Transfer</span>
+                <span class="summary-label">Transfer Type:</span>
+                <span class="summary-value">General Transfer</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Tutar:</span>
+                <span class="summary-label">Amount:</span>
                 <span class="summary-value">${amount} ${currency}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Kaynak Hesap:</span>
+                <span class="summary-label">Source Account:</span>
                 <span class="summary-value">${sourceAccount}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Hedef Hesap:</span>
+                <span class="summary-label">Destination Account:</span>
                 <span class="summary-value">${destinationAccount}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">İşlem ID:</span>
+                <span class="summary-label">Transaction ID:</span>
                 <span class="summary-value">${transactionId}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Tarih:</span>
+                <span class="summary-label">Date:</span>
                 <span class="summary-value">${date}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Durum:</span>
-                <span class="summary-value">✅ Tamamlandı</span>
+                <span class="summary-label">Status:</span>
+                <span class="summary-value">✅ Completed</span>
               </div>
             </div>
             
@@ -1620,7 +1893,7 @@ export class WebhookMailSchedulerService {
   private generateDefaultWebhookTemplate(webhookName: string): string {
     const date = new Date().toISOString().split('T')[0];
     
-    return `
+        return `
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -1810,39 +2083,39 @@ export class WebhookMailSchedulerService {
             <div class="logo">
               <div class="logo-icon">🏠</div>
               <div class="logo-text">Magna Porta</div>
-            </div>
-            <h1 class="main-heading">Hesap Güncellendi</h1>
-            <p class="sub-heading">Hesabınız güncellendi</p>
+          </div>
+            <h1 class="main-heading">Account Updated</h1>
+            <p class="sub-heading">Your account has been updated</p>
           </div>
           
           <div class="content">
-            <p class="greeting">Merhaba,</p>
+            <p class="greeting">Hello,</p>
             <p class="description">
-              Magna Porta hesabınız güncellendi.<br>
-              İşte bu güncellemenin özeti:
+              Your Magna Porta account has been updated.<br>
+              Here's a summary of this update:
             </p>
             
             <div class="summary-box">
-              <h3 class="summary-title">Güncelleme Özeti</h3>
+              <h3 class="summary-title">Update Summary</h3>
               
               <div class="summary-item">
-                <span class="summary-label">Güncelleme Türü:</span>
+                <span class="summary-label">Update Type:</span>
                 <span class="summary-value">${webhookName}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Tarih:</span>
+                <span class="summary-label">Date:</span>
                 <span class="summary-value">${date}</span>
               </div>
               
               <div class="summary-item">
-                <span class="summary-label">Durum:</span>
-                <span class="summary-value">✅ Güncellendi</span>
+                <span class="summary-label">Status:</span>
+                <span class="summary-value">✅ Updated</span>
               </div>
             </div>
             
             <div style="text-align: center;">
-              <a href="#" class="cta-button">Detayları Görüntüle</a>
+              <a href="#" class="cta-button">View Details</a>
             </div>
           </div>
           

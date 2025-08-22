@@ -92,3 +92,4 @@ temp/
 # Optional stylelint cache
 .stylelintcache
 src/mail/README.md
+src/webhook/README-global-account-active.md

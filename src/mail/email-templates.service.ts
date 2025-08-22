@@ -24,6 +24,21 @@ export interface PasswordResetData {
   expiryTime: string;
 }
 
+export interface GlobalAccountActiveData {
+  companyName: string;
+  accountType: string;
+  accountLocation: string;
+  accountStatus: string;
+  airwallexAccount: string;
+  iban: string;
+  bankName: string;
+  accountCurrency: string;
+  activationDate: string;
+  accountNumber: string;
+  swiftCode: string;
+  nickName: string;
+}
+
 @Injectable()
 export class EmailTemplatesService {
   
@@ -757,6 +772,267 @@ export class EmailTemplatesService {
           <div class="footer">
             <p class="footer-text">
               If you didn't request this password reset, please contact our support team immediately.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Creates a beautiful global account activation email template
+   */
+  createGlobalAccountActiveTemplate(data: GlobalAccountActiveData): string {
+    console.error(data)
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Global Account Activated</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+          }
+          
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+          }
+          
+          .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #ff6b35;
+            border-radius: 8px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+          }
+          
+          .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+          }
+          
+          .main-heading {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+          }
+          
+          .sub-heading {
+            font-size: 16px;
+            opacity: 0.9;
+          }
+          
+          .content {
+            padding: 40px 30px;
+          }
+          
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #495057;
+          }
+          
+          .description {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #6c757d;
+            line-height: 1.7;
+          }
+          
+          .account-summary {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 4px solid #28a745;
+          }
+          
+          .summary-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #28a745;
+            margin-bottom: 20px;
+            text-align: center;
+          }
+          
+          .account-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+          }
+          
+          .detail-item {
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .detail-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+          }
+          
+          .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #495057;
+          }
+          
+          .status-badge {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 10px 0;
+          }
+          
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+          }
+          
+          .footer-text {
+            font-size: 12px;
+            color: #6c757d;
+          }
+          
+          @media (max-width: 600px) {
+            .container {
+              margin: 10px;
+              border-radius: 8px;
+            }
+            
+            .header, .content {
+              padding: 20px;
+            }
+            
+            .main-heading {
+              font-size: 20px;
+            }
+            
+            .account-details {
+              grid-template-columns: 1fr;
+              gap: 15px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">
+              <div class="logo-icon">🏦</div>
+              <div class="logo-text">Magna Porta</div>
+            </div>
+            <h1 class="main-heading">Your ${data.accountCurrency} Global Account in ${data.accountLocation} has been activated</h1>
+            <p class="sub-heading">Account is ready for use</p>
+          </div>
+          
+          <div class="content">
+            <p class="greeting">Hi ${data.companyName},</p>
+            <p class="description">
+              Thank you for your patience. Your ${data.accountCurrency} Global Account in ${data.accountLocation} has now been activated and is ready to use. Here's a summary of your account details:
+            </p>
+            
+            <div class="account-summary">
+              <div class="summary-title">${data.companyName}</div>
+              <div class="status-badge">${data.accountStatus}</div>
+              
+              <div class="account-details">
+                <div class="detail-item">
+                  <span class="detail-label">Airwallex Account</span>
+                  <span class="detail-value">${data.airwallexAccount}</span>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-label">IBAN</span>
+                  <span class="detail-value">${data.iban}</span>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-label">Account Location</span>
+                  <span class="detail-value">${data.accountLocation}</span>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-label">Bank Name</span>
+                  <span class="detail-value">${data.bankName}</span>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-label">Account Number</span>
+                  <span class="detail-value">${data.accountNumber}</span>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-label">SWIFT Code</span>
+                  <span class="detail-value">${data.swiftCode}</span>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-label">Nick Name</span>
+                  <span class="detail-value">${data.nickName}</span>
+                </div>
+                
+                <div class="detail-item">
+                  <span class="detail-label">Activation Date</span>
+                  <span class="detail-value">${data.activationDate}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p class="footer-text">
+              Your account is now fully operational. You can start using it for international transactions and payments.
             </p>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PayoutTransferFundingFundedHookData } from '../models/payout-transfer-funding-funded-hook.model';
 import { ConversionSettledModel, ConversionSettledEmailData } from '../models/conversion-settled.model';
+import { GlobalAccountActiveEmailData } from '../models/global-account-active.model';
 
 @Injectable()
 export class WebhookDataParserService {
@@ -22,6 +23,9 @@ export class WebhookDataParserService {
         
         case 'conversion.settled':
           return this.parseConversionSettled(dataJson);
+        
+        case 'global_account.active':
+          return this.parseGlobalAccountActive(dataJson);
         
         case 'transfer.new':
           return this.parseTransfer(dataJson);
@@ -176,10 +180,30 @@ export class WebhookDataParserService {
       buyAmount: data.buy_amount || 0,
       sellCurrency: data.sell_currency || '',
       sellAmount: data.sell_amount || 0,
-      clientRate: data.client_rate || 0,
+      clientRate: data.client_rate || '',
       conversionDate: data.conversion_date || '',
       status: data.status || '',
       currencyPair: data.currency_pair || ''
+    };
+  }
+
+  /**
+   * Global account active webhook data'sını parse eder
+   */
+  private parseGlobalAccountActive(data: any): GlobalAccountActiveEmailData {
+    return {
+      companyName: data.data?.account_name || '',
+      accountType: data.data?.account_type || '',
+      accountLocation: data.data?.country_code || '',
+      accountStatus: data.data?.status || '',
+      airwallexAccount: data.account_id || '',
+      iban: data.data?.iban || '',
+      bankName: data.data?.institution?.name || '',
+      accountCurrency: data.data?.required_features?.[0]?.currency || '',
+      activationDate: data.created_at || '',
+      accountNumber: data.data?.account_number || '',
+      swiftCode: data.data?.swift_code || '',
+      nickName: data.data?.nick_name || ''
     };
   }
 }

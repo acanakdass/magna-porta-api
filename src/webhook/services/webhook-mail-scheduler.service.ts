@@ -7,6 +7,7 @@ import { CompaniesService } from '../../company/companies.service';
 import { EmailTemplatesService, TransferNotificationData } from '../../mail/email-templates.service';
 import { ConversionSettledEmailData } from '../models/conversion-settled.model';
 import { AccountActiveHookData, AccountActiveEmailData } from '../models/account-active.model';
+import { GlobalAccountActiveEmailData } from '../models/global-account-active.model';
 import { WebhookDataParserService } from './webhook-data-parser.service';
 
 @Injectable()
@@ -65,7 +66,7 @@ export class WebhookMailSchedulerService {
       
               // Account ID ile company bul
         const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
-        console.log(company);
+        //console.log(company);
         if (company) {
           this.logger.log(`Company bulundu: ${company.name} (ID: ${company.id})`);
           this.logger.log(`Company users count: ${company.users?.length || 0}`);
@@ -323,6 +324,16 @@ export class WebhookMailSchedulerService {
       case 'account.active':
         return this.generateAccountActiveContent(data);
       
+      case 'global_account.active':
+        //console.log(data)
+        //const parsedGlobalAccountData = this.webhookDataParserService.parseWebhookData('global_account.active', data);
+        //console.log("parsedGlobalAccountData")
+        //console.log(parsedGlobalAccountData)
+        console.log("----------------------------------------------")
+        console.log("generateGlobalAccountActiveContent")
+        console.log("----------------------------------------------")
+        return this.generateGlobalAccountActiveContent(data);
+      
       default:
         return this.generateDefaultContent(webhookName);
     }
@@ -512,6 +523,86 @@ export class WebhookMailSchedulerService {
   }
 
   /**
+   * Global account active webhook content
+   */
+  private generateGlobalAccountActiveContent(data: any): string {
+
+    const accountData = data;
+    
+    // Company name'i account name'den al
+    const companyName = accountData.account_name || 'Your Company';
+    
+    // Account type
+    const accountType = accountData.account_type || 'Unknown';
+    
+    // Account location'ı country code'dan al
+    const accountLocation = accountData.country_code || 'Unknown';
+    
+    // Account status
+    const accountStatus = accountData.status || 'Unknown';
+    
+    // Airwallex account ID
+    const airwallexAccount = accountData.id || 'Unknown';
+    
+    // IBAN
+    const iban = accountData.iban || 'Unknown';
+    
+    // Bank name
+    const bankName = accountData.institution?.name || 'Unknown';
+    
+    // Account currency
+    const accountCurrency = accountData.required_features?.[0]?.currency || 'Unknown';
+    
+    // Activation date
+    const activationDate = new Date(accountData.created_at || Date.now()).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    // Account number
+    const accountNumber = accountData.account_number || 'Unknown';
+    
+    // SWIFT code
+    const swiftCode = accountData.swift_code || 'Unknown';
+    
+    // Nick name
+    const nickName = accountData.nick_name || 'Unknown';
+  
+    return `
+      <div class="custom-content">
+        <h3>🏦 Global Account Activated Successfully!</h3>
+        <p><strong>Account Status:</strong> ${accountStatus}</p>
+        <p><strong>Activation Date:</strong> ${activationDate}</p>
+        
+        <div style="background-color: #f0f8ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h4>🏢 Account Information</h4>
+          <p><strong>Company Name:</strong> ${companyName}</p>
+          <p><strong>Account Type:</strong> ${accountType}</p>
+          <p><strong>Account Location:</strong> ${accountLocation}</p>
+          <p><strong>Airwallex Account ID:</strong> ${airwallexAccount}</p>
+        </div>
+        
+        <div style="background-color: #f0fff0; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h4>🏦 Banking Details</h4>
+          <p><strong>IBAN:</strong> ${iban}</p>
+          <p><strong>Bank Name:</strong> ${bankName}</p>
+          <p><strong>Account Number:</strong> ${accountNumber}</p>
+          <p><strong>SWIFT Code:</strong> ${swiftCode}</p>
+          <p><strong>Nick Name:</strong> ${nickName}</p>
+        </div>
+        
+        <div style="background-color: #fff8f0; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h4>💱 Account Features</h4>
+          <p><strong>Account Currency:</strong> ${accountCurrency}</p>
+          <p><strong>Transfer Method:</strong> ${accountData.required_features?.[0]?.transfer_method || 'Unknown'}</p>
+          <p><strong>Institution Address:</strong> ${accountData.institution?.address || 'Unknown'}, ${accountData.institution?.city || 'Unknown'}, ${accountData.institution?.zip_code || 'Unknown'}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Normal kullanıcılar için minimal webhook content
    */
   private generateMinimalWebhookContent(webhook: any): string {
@@ -538,6 +629,8 @@ export class WebhookMailSchedulerService {
         return this.generateTransferProcessedTemplate(data);
       case 'account.active':
         return this.generateAccountActiveTemplate(data);
+      case 'global_account.active':
+        return this.generateGlobalAccountActiveTemplate(data);
       default:
         return this.generateDefaultWebhookTemplate(webhook.webhookName);
     }
@@ -1751,6 +1844,8 @@ export class WebhookMailSchedulerService {
       day: 'numeric'
     });
     
+    console.warn("accountData wrong placee")
+    console.log("accountData wrong placee")
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -1890,6 +1985,140 @@ export class WebhookMailSchedulerService {
               <p style="font-size: 12px; color: #6c757d; margin: 0;">
                 This email was sent by Magna Porta. If you have any questions, please contact our support team.
               </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
+
+  
+  private generateGlobalAccountActiveTemplate(data: any): string {
+    const accountData = data as GlobalAccountActiveEmailData;
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your ${accountData.accountCurrency} Global Account in ${accountData.accountLocation} has been activated</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <h1 style="font-size: 28px; font-weight: 700; margin: 20px 0 10px 0; color: white;">Your ${accountData.accountCurrency} Global Account in ${accountData.accountLocation} has been activated!</h1>
+                    <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your account is now ready to use</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hi ${accountData.companyName},</p>
+              <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
+                Thank you for your patience. Your ${accountData.accountCurrency} Global Account in ${accountData.accountLocation} has now been activated and is ready to use. Here's a summary of your account details:
+              </p>
+              
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                <tr>
+                  <td style="padding: 30px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333;">${accountData.companyName}</h3>
+                    
+                    <div style="text-align: center; margin-bottom: 20px;">
+                      <span style="display: inline-block; background-color: #28a745; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${accountData.accountStatus}</span>
+                    </div>
+                    
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Airwallex Account:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.airwallexAccount}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">IBAN:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.iban}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Account Location:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.accountLocation}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Bank Name:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                            <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.bankName}</span>
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Account Number:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.accountNumber}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">SWIFT Code:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.swiftCode}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Nick Name:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.nickName}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Activation Date:</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: #333; font-weight: 600;">${accountData.activationDate}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745;">
+                <p style="margin: 0; color: #155724; font-size: 14px;">
+                  <strong>✅ Your account is now fully operational.</strong> You can start using it for international transactions and payments.
+                </p>
+              </div>
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 30px; text-align: center; color: #6c757d; font-size: 14px;">
+              <p style="margin: 0 0 15px 0; line-height: 1.6;">This is an automated notification from Magna Porta</p>
+              <p style="margin: 0 0 15px 0; line-height: 1.6;">Please do not reply to this email</p>
             </td>
           </tr>
         </table>

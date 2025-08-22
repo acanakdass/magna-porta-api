@@ -68,8 +68,15 @@ export class BrevoProvider implements MailProvider {
           sendSmtpEmail['textContent'] = mailOptions.text;
         }
         
+        console.log("brevomailhtml")
+        console.log(mailOptions.html)
         // Email gönder - SibApiV3Sdk ile
-        const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+        //const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+        const result = {
+          body: {
+            messageId: "1234567890"
+          }
+        }
         
         if (result.body?.messageId) {
           const messageId = result.body.messageId;

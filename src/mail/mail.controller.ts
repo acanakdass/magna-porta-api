@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { MailService, MailProviderType } from './mail.service';
-import { SendMailDto, SendTemplateMailDto } from './dto/send-mail.dto';
+import { SendMailDto, SendTemplateMailDto, SendForgotPasswordMailDto } from './dto/send-mail.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 @ApiTags('mail')
@@ -429,5 +429,31 @@ export class MailController {
   async setDefaultProvider(@Body() body: { provider: MailProviderType }) {
     await this.mailService.setDefaultProvider(body.provider);
     return { message: `Default provider ${body.provider} olarak ayarlandı` };
+  }
+
+  @Post('send-forgot-password')
+  @ApiOperation({ summary: 'Şifre unutma maili gönder' })
+  @ApiQuery({ 
+    name: 'provider', 
+    required: false, 
+    enum: Object.values(MailProviderType),
+    description: 'Mail provider türü (smtp, sendgrid, brevo, auto)'
+  })
+  @ApiBody({
+    type: SendForgotPasswordMailDto,
+    description: 'Şifre unutma maili gönderme verileri'
+  })
+  @ApiResponse({ status: 201, description: 'Şifre unutma maili başarıyla gönderildi' })
+  @ApiResponse({ status: 400, description: 'Geçersiz mail verisi' })
+  async sendForgotPasswordEmail(
+    @Body() sendForgotPasswordMailDto: SendForgotPasswordMailDto,
+    @Query('provider') provider?: MailProviderType
+  ) {
+    return await this.mailService.sendForgotPasswordEmail(
+      sendForgotPasswordMailDto.toEmail,
+      sendForgotPasswordMailDto.subject,
+      sendForgotPasswordMailDto.passcode,
+      provider
+    );
   }
 }

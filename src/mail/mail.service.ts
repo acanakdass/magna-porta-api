@@ -5,7 +5,7 @@ import { MailProvider, MailOptions } from './interfaces/mail-provider.interface'
 import { SmtpProvider } from './providers/smtp.provider';
 import { SendGridProvider } from './providers/sendgrid.provider';
 import { BrevoProvider } from './providers/brevo.provider';
-import { EmailTemplatesService, TransferNotificationData, WelcomeEmailData, PasswordResetData } from './email-templates.service';
+import { EmailTemplatesService, TransferNotificationData, WelcomeEmailData, PasswordResetData, ForgotPasswordData } from './email-templates.service';
 
 export enum MailProviderType {
   SMTP = 'smtp',
@@ -197,6 +197,24 @@ export class MailService {
     return this.sendMail({
       to,
       subject: 'Password Reset Request - Magna Porta',
+      html
+    }, providerType);
+  }
+
+  /**
+   * Şifre unutma maili gönder
+   */
+  async sendForgotPasswordEmail(
+    toEmail: string,
+    subject: string,
+    passcode: string,
+    providerType?: MailProviderType
+  ): Promise<SentMessageInfo> {
+    const html = this.emailTemplatesService.createForgotPasswordTemplate({ passcode });
+    
+    return this.sendMail({
+      to: toEmail,
+      subject: subject,
       html
     }, providerType);
   }

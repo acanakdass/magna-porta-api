@@ -31,7 +31,7 @@ export class WebhookMailSchedulerService {
   /**
    * Her dakika çalışır ve mail gönderilmemiş webhook'ları kontrol eder
    */
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  //@Cron(CronExpression.EVERY_10_SECONDS)
   async processUnsentWebhooks() {
     try {
       this.logger.log('Webhook mail kontrolü başlatıldı...');

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 export interface TransferNotificationData {
   recipientName: string;
@@ -39,8 +40,17 @@ export interface GlobalAccountActiveData {
   nickName: string;
 }
 
+export interface ForgotPasswordData {
+  passcode: string;
+}
+
 @Injectable()
 export class EmailTemplatesService {
+  private readonly LOGO_URL: string;
+
+  constructor(private configService: ConfigService) {
+    this.LOGO_URL = this.configService.get('LOGO_URL', 'http://209.38.223.41:3001/assets/magnaporta-logos/logo_magna_porta.png');
+  }
   
   /**
    * Creates a beautiful transfer notification email template
@@ -1033,6 +1043,202 @@ export class EmailTemplatesService {
           <div class="footer">
             <p class="footer-text">
               Your account is now fully operational. You can start using it for international transactions and payments.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Creates a simple forgot password email template
+   */
+  createForgotPasswordTemplate(data: ForgotPasswordData): string {
+    return `
+      <!DOCTYPE html>
+      <html lang="tr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Şifre Sıfırlama</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+          }
+          
+          .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+          }
+          
+          .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          
+
+          
+          .main-heading {
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: 600;
+          }
+          
+          .sub-heading {
+            font-size: 16px;
+            opacity: 0.9;
+          }
+          
+          .content {
+            padding: 30px;
+          }
+          
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+          }
+          
+          .description {
+            font-size: 16px;
+            margin-bottom: 25px;
+            color: #666;
+          }
+          
+          .passcode-container {
+            background-color: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 25px;
+            text-align: center;
+            margin: 25px 0;
+          }
+          
+          .passcode-label {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+          
+          .passcode {
+            font-size: 32px;
+            font-weight: bold;
+            color: #495057;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 3px;
+            background-color: white;
+            padding: 15px 25px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            display: inline-block;
+            min-width: 200px;
+          }
+          
+          .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+          }
+          
+          .warning-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+          }
+          
+          .footer-text {
+            font-size: 14px;
+            color: #6c757d;
+          }
+          
+          @media (max-width: 600px) {
+            .container {
+              margin: 10px;
+              border-radius: 8px;
+            }
+            
+            .header, .content {
+              padding: 20px;
+            }
+            
+            .main-heading {
+              font-size: 20px;
+            }
+            
+            .passcode {
+              font-size: 24px;
+              letter-spacing: 2px;
+              min-width: 150px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+                      <div class="logo">
+            <img src="${this.LOGO_URL}" 
+                 alt="Magna Porta" 
+                 style="max-width: 200px; height: auto; margin-bottom: 20px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">
+          </div>
+            <h1 class="main-heading">Şifre Sıfırlama</h1>
+            <p class="sub-heading">Hesabınıza erişim için kod</p>
+          </div>
+          
+          <div class="content">
+            <p class="greeting">Merhaba,</p>
+            <p class="description">
+              Şifrenizi sıfırlamak için aşağıdaki kodu kullanın. Bu kod güvenlik nedeniyle sınırlı süre geçerlidir.
+            </p>
+            
+            <div class="passcode-container">
+              <div class="passcode-label">Şifre Sıfırlama Kodu</div>
+              <div class="passcode">${data.passcode}</div>
+            </div>
+            
+            <div class="warning">
+              <div class="warning-title">⚠️ Güvenlik Uyarısı</div>
+              <p>Bu kodu kimseyle paylaşmayın. Magna Porta ekibi asla sizden şifre kodunuzu istemez.</p>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p class="footer-text">
+              Bu mail otomatik olarak gönderilmiştir. Lütfen yanıtlamayın.
             </p>
           </div>
         </div>

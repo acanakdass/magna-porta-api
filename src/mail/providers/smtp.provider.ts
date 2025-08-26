@@ -14,46 +14,46 @@ export class SmtpProvider implements MailProvider {
   }
 
   private async initializeTransporter() {
-    try {    
-      console.log("initializeTransporter");
-      console.log("smtp host", this.configService.get('SMTP_HOST'));
-      console.log("smtp port", this.configService.get('SMTP_PORT'));
-      console.log("smtp secure", this.configService.get('SMTP_SECURE'));
-      console.log("smtp user", this.configService.get('SMTP_USER'));
-      console.log("smtp pass", this.configService.get('SMTP_PASS'));
+    // try {    
+    //   console.log("initializeTransporter");
+    //   console.log("smtp host", this.configService.get('SMTP_HOST'));
+    //   console.log("smtp port", this.configService.get('SMTP_PORT'));
+    //   console.log("smtp secure", this.configService.get('SMTP_SECURE'));
+    //   console.log("smtp user", this.configService.get('SMTP_USER'));
+    //   console.log("smtp pass", this.configService.get('SMTP_PASS'));
         
-      const smtpConfig = {
-        host: this.configService.get('SMTP_HOST', 'smtp.gmail.com'),
-        port: this.configService.get('SMTP_PORT', 587),
-        secure: this.configService.get('SMTP_SECURE', false), // true for 465, false for other ports
-        auth: {
-          user: this.configService.get('SMTP_USER'),
-          pass: this.configService.get('SMTP_PASS'),
-        },
-        // Gmail için özel ayarlar
-        service: this.configService.get('SMTP_SERVICE', 'gmail'),
-        // Connection timeout ayarları
-        connectionTimeout: 5000, // 60 saniye
-        greetingTimeout: 5000,   // 30 saniye
-        socketTimeout: 5000,     // 60 saniye
-        // Connection pool ayarları
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
-        // Rate limiting
-        rateLimit: 14, // Gmail için saniyede max 14 mail
-        rateDelta: 1000, // 1 saniye
-      };
+    //   const smtpConfig = {
+    //     host: this.configService.get('SMTP_HOST', 'smtp.gmail.com'),
+    //     port: this.configService.get('SMTP_PORT', 587),
+    //     secure: this.configService.get('SMTP_SECURE', false), // true for 465, false for other ports
+    //     auth: {
+    //       user: this.configService.get('SMTP_USER'),
+    //       pass: this.configService.get('SMTP_PASS'),
+    //     },
+    //     // Gmail için özel ayarlar
+    //     service: this.configService.get('SMTP_SERVICE', 'gmail'),
+    //     // Connection timeout ayarları
+    //     connectionTimeout: 5000, // 60 saniye
+    //     greetingTimeout: 5000,   // 30 saniye
+    //     socketTimeout: 5000,     // 60 saniye
+    //     // Connection pool ayarları
+    //     pool: true,
+    //     maxConnections: 5,
+    //     maxMessages: 100,
+    //     // Rate limiting
+    //     rateLimit: 14, // Gmail için saniyede max 14 mail
+    //     rateDelta: 1000, // 1 saniye
+    //   };
 
-      this.transporter = nodemailer.createTransport(smtpConfig);
+    //   this.transporter = nodemailer.createTransport(smtpConfig);
 
-      await this.transporter.verify();
-      this.logger.log('SMTP bağlantısı başarıyla kuruldu');
-    } catch (error) {
-      this.logger.error('SMTP bağlantısı kurulamadı:', error.message);
-      // Fallback olarak test account oluştur
-      this.createTestAccount();
-    }
+    //   await this.transporter.verify();
+    //   this.logger.log('SMTP bağlantısı başarıyla kuruldu');
+    // } catch (error) {
+    //   this.logger.error('SMTP bağlantısı kurulamadı:', error.message);
+    //   // Fallback olarak test account oluştur
+    //   this.createTestAccount();
+    // }
   }
 
   private async createTestAccount() {

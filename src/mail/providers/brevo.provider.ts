@@ -24,6 +24,8 @@ export class BrevoProvider implements MailProvider {
 
       // Brevo SDK'sını yapılandır - yeni versiyona uygun
       this.apiInstance = new TransactionalEmailsApi();
+      console.log("brevo apiKey")
+      console.log(apiKey)
       this.apiInstance.setApiKey(TransactionalEmailsApiApiKeys.apiKey, apiKey);
        
       this.isInitialized = true;
@@ -77,7 +79,8 @@ export class BrevoProvider implements MailProvider {
         //    messageId: "1234567890"
         //  }
         //}
-        
+        console.log("brevo result")
+        console.log(result)
         if (result.body?.messageId) {
           const messageId = result.body.messageId;
           
@@ -103,6 +106,7 @@ export class BrevoProvider implements MailProvider {
         }
         
       } catch (error) {
+        console.log("brevo error")
         console.log(error)
         console.error("error: " + error)
         this.logger.log(`Brevo mail gönderim denemesi ${attempt}/${maxRetries} başarısız: ${error.message}`);

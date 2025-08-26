@@ -62,7 +62,7 @@ export class WebhookMailSchedulerService {
    */
   private async sendWebhookNotification(webhook: any): Promise<void> {
     try {
-      const subject = `Yeni Webhook: ${webhook.webhookName}`;
+      const subject = this.generateWebhookSubject(webhook.webhookName);
       
               // Account ID ile company bul
         const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
@@ -133,6 +133,42 @@ export class WebhookMailSchedulerService {
   }
 
   /**
+   * Webhook tipine göre anlamlı email subject oluşturur
+   */
+  private generateWebhookSubject(webhookName: string): string {
+    switch (webhookName) {
+      case 'payout.transfer.in_approval':
+        return 'Transfer Approval Required - Action Needed';
+      case 'payout.transfer.approval_rejected':
+        return 'Transfer Approval Rejected - Review Required';
+      case 'payout.transfer.approval_blocked':
+        return 'Transfer Approval Blocked - Compliance Issue';
+      case 'payout.transfer.funding.requires_funding_confirmation':
+        return 'Funding Confirmation Required - Action Needed';
+      case 'payout.transfer.funding.failed':
+        return 'Transfer Funding Failed - Issue Detected';
+      case 'payout.transfer.funding.cancelled':
+        return 'Transfer Funding Cancelled - Process Stopped';
+      case 'payout.transfer.funding.funded':
+        return 'Transfer Successfully Funded - Process Complete';
+      case 'connected_account_transfer':
+        return 'Connected Account Transfer Completed';
+      case 'conversion':
+        return 'Currency Conversion Completed';
+      case 'conversion.settled':
+        return 'Currency Conversion Settled - Process Complete';
+      case 'transfer':
+        return 'Transfer Processed Successfully';
+      case 'account.active':
+        return 'Account Successfully Activated';
+      case 'global_account.active':
+        return 'Global Account Successfully Activated';
+      default:
+        return `Webhook Notification: ${webhookName}`;
+    }
+  }
+
+  /**
    * Webhook email içeriği oluşturur
    */
   private generateWebhookEmailContent(webhook: any, company?: any): string {
@@ -165,15 +201,6 @@ export class WebhookMailSchedulerService {
                   <td style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
                     <p style="margin: 0 0 15px 0; line-height: 1.6;"><strong>Transaction Time:</strong> ${new Date(webhook.receivedAt).toLocaleString('en-US')}</p>
                     <p style="margin: 0 0 15px 0; line-height: 1.6;"><strong>Reference No:</strong> ${webhook.webhookId}</p>
-                  </td>
-                </tr>
-              </table>
-              
-              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 25px 0;">
-                <tr>
-                  <td style="background-color: #f8f9fa; padding: 30px; border-radius: 15px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                    <h3 style="margin: 0 0 20px 0; color: #495057; font-size: 20px; text-align: center;">📋 Transaction Details</h3>
-                    ${this.generateTransactionDetails(webhook)}
                   </td>
                 </tr>
               </table>
@@ -372,12 +399,6 @@ export class WebhookMailSchedulerService {
           <p><strong>IBAN:</strong> ${data.beneficiary?.bank_details?.iban || 'Unknown'}</p>
         </div>
         
-        <div style="background-color: #fff8f0; padding: 15px; border-radius: 5px; margin: 15px 0;">
-          <h4>📋 Transaction Details</h4>
-          <p><strong>Reference:</strong> ${data.reference || 'Unknown'}</p>
-          <p><strong>Reason:</strong> ${data.reason || 'Unknown'}</p>
-          <p><strong>Fee:</strong> ${data.fee_amount || 0} ${data.fee_currency || 'USD'}</p>
-        </div>
       </div>
     `;
   }
@@ -505,12 +526,7 @@ export class WebhookMailSchedulerService {
           <p><strong>Airwallex Account:</strong> ${airwallexAccount}</p>
         </div>
         
-        <div style="background-color: #f0fff0; padding: 15px; border-radius: 5px; margin: 15px 0;">
-          <h4>📋 Account Details</h4>
-          <p><strong>Account ID:</strong> ${accountData.account_id}</p>
-          <p><strong>Legal Entity Type:</strong> ${accountData.data?.account_details?.legal_entity_type || 'Unknown'}</p>
-          <p><strong>View Type:</strong> ${accountData.data?.view_type || 'Unknown'}</p>
-        </div>
+        
         
         <div style="background-color: #fff8f0; padding: 15px; border-radius: 5px; margin: 15px 0;">
           <h4>💳 Account Usage</h4>
@@ -617,6 +633,30 @@ export class WebhookMailSchedulerService {
         // Webhook data parser service'i kullanarak data'yı parse et
         const parsedPayoutData2 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
         return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData2);
+      case 'payout.transfer.in_approval':
+        // Webhook data parser service'i kullanarak data'yı parse et
+        const parsedPayoutData3 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
+        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData3);
+      case 'payout.transfer.approval_rejected':
+        // Webhook data parser service'i kullanarak data'yı parse et
+        const parsedPayoutData4 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
+        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData4);
+      case 'payout.transfer.approval_blocked':
+        // Webhook data parser service'i kullanarak data'yı parse et
+        const parsedPayoutData5 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
+        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData5);
+      case 'payout.transfer.funding.requires_funding_confirmation':
+        // Webhook data parser service'i kullanarak data'yı parse et
+        const parsedPayoutData6 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
+        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData6);
+      case 'payout.transfer.funding.failed':
+        // Webhook data parser service'i kullanarak data'yı parse et
+        const parsedPayoutData7 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
+        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData7);
+      case 'payout.transfer.funding.cancelled':
+        // Webhook data parser service'i kullanarak data'yı parse et
+        const parsedPayoutData8 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
+        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData8);
       case 'connected_account_transfer':
         return this.generateTransferCompletedTemplate(data);
       case 'conversion':
@@ -1306,16 +1346,7 @@ export class WebhookMailSchedulerService {
               <table cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td style="text-align: center;">
-                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
-                      <tr>
-                        <td style="width: 40px; height: 40px; background-color: #ff6b35; border-radius: 8px; text-align: center; vertical-align: middle; padding-right: 12px;">
-                          <span style="font-size: 20px; color: white;">🏠</span>
-                        </td>
-                        <td style="text-align: left;">
-                          <div style="font-size: 24px; font-weight: 700; color: white;">Magna Porta</div>
-                        </td>
-                      </tr>
-                    </table>
+                    
                     <h1 style="font-size: 28px; font-weight: 700; margin: 20px 0 10px 0; color: white;">Account Updated</h1>
                     <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your account has been updated</p>
                   </td>
@@ -1662,20 +1693,23 @@ export class WebhookMailSchedulerService {
     // PayoutTransferFundingFundedHookData tipinde data bekliyoruz
     const payoutData = data;
     
+    // Webhook tipine göre uygun mesajları ve renkleri belirle
+    const { title, subtitle, headerColor, statusMessage, statusColor, buttonText, buttonColor } = this.getPayoutTransferEmailConfig(payoutData.message);
+    
     return `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</title>
+        <title>${title}</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; margin: 0; padding: 0;">
         <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
           <tr>
-            <td style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 30px; text-align: center; color: white;">
-              <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">Your transfer to ${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'} is on its way</h1>
-              <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">Your transfer should arrive in 0-2 business days</p>
+            <td style="background: ${headerColor}; padding: 30px; text-align: center; color: white;">
+              <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 10px; color: white;">${title}</h1>
+              <p style="font-size: 16px; opacity: 0.9; font-weight: 400; margin: 0;">${subtitle}</p>
             </td>
           </tr>
           
@@ -1683,7 +1717,7 @@ export class WebhookMailSchedulerService {
             <td style="padding: 40px 30px;">
               <p style="font-size: 18px; margin-bottom: 20px; color: #555;">Hi there,</p>
               <p style="font-size: 16px; margin-bottom: 30px; color: #666; line-height: 1.8;">
-                Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> should arrive in 0-2 business days from <strong>${payoutData.transfer_date || 'N/A'}</strong>. Here's a summary of this transfer:
+                ${this.getPayoutTransferEmailBody(payoutData.message, payoutData)}
               </p>
               
               <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 12px; margin-bottom: 30px; border: 1px solid #e9ecef;">
@@ -1730,6 +1764,14 @@ export class WebhookMailSchedulerService {
                         </td>
                         <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
                           <span style="font-size: 14px; color: #333; font-weight: 600;">${payoutData.transfer_method || 'BANK_TRANSFER'}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                          <span style="font-size: 14px; color: #6c757d; font-weight: 500;">Status</span>
+                        </td>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+                          <span style="font-size: 14px; color: ${statusColor}; font-weight: 600;">${statusMessage}</span>
                         </td>
                       </tr>
                       <tr>
@@ -1791,7 +1833,7 @@ export class WebhookMailSchedulerService {
               <table cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td style="text-align: center;">
-                    <a href="#" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">View Transfer Details</a>
+                    <a href="#" style="display: inline-block; background: ${buttonColor}; color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">${buttonText}</a>
                   </td>
                 </tr>
               </table>
@@ -1809,6 +1851,116 @@ export class WebhookMailSchedulerService {
       </body>
       </html>
     `;
+  }
+
+  /**
+   * Payout transfer email konfigürasyonu - webhook tipine göre uygun mesajları ve renkleri döndürür
+   */
+  private getPayoutTransferEmailConfig(message: string): any {
+    if (message.includes('pending approval')) {
+      return {
+        title: 'Transfer Approval Required',
+        subtitle: 'Your transfer is waiting for approval',
+        headerColor: 'linear-gradient(135deg, #ffc107 0%, #ff9800 100%)',
+        statusMessage: '⏳ Pending Approval',
+        statusColor: '#ff9800',
+        buttonText: 'View Transfer Details',
+        buttonColor: 'linear-gradient(135deg, #ffc107 0%, #ff9800 100%)'
+      };
+    } else if (message.includes('approval rejected')) {
+      return {
+        title: 'Transfer Approval Rejected',
+        subtitle: 'Your transfer approval has been denied',
+        headerColor: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
+        statusMessage: '❌ Approval Rejected',
+        statusColor: '#dc3545',
+        buttonText: 'View Transfer Details',
+        buttonColor: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)'
+      };
+    } else if (message.includes('approval blocked')) {
+      return {
+        title: 'Transfer Approval Blocked',
+        subtitle: 'Your transfer approval has been blocked',
+        headerColor: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)',
+        statusMessage: '🚫 Approval Blocked',
+        statusColor: '#6c757d',
+        buttonText: 'View Transfer Details',
+        buttonColor: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)'
+      };
+    } else if (message.includes('requires funding confirmation')) {
+      return {
+        title: 'Funding Confirmation Required',
+        subtitle: 'Your transfer needs funding confirmation',
+        headerColor: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)',
+        statusMessage: '🔒 Requires Confirmation',
+        statusColor: '#17a2b8',
+        buttonText: 'View Transfer Details',
+        buttonColor: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'
+      };
+    } else if (message.includes('funding failed')) {
+      return {
+        title: 'Transfer Funding Failed',
+        subtitle: 'Your transfer funding was unsuccessful',
+        headerColor: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
+        statusMessage: '❌ Funding Failed',
+        statusColor: '#dc3545',
+        buttonText: 'View Transfer Details',
+        buttonColor: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)'
+      };
+    } else if (message.includes('funding cancelled')) {
+      return {
+        title: 'Transfer Funding Cancelled',
+        subtitle: 'Your transfer funding has been cancelled',
+        headerColor: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)',
+        statusMessage: '🚫 Funding Cancelled',
+        statusColor: '#6c757d',
+        buttonText: 'View Transfer Details',
+        buttonColor: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)'
+      };
+    } else if (message.includes('successfully funded')) {
+      return {
+        title: 'Transfer Successfully Funded',
+        subtitle: 'Your transfer has been funded and is on its way',
+        headerColor: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+        statusMessage: '✅ Successfully Funded',
+        statusColor: '#28a745',
+        buttonText: 'View Transfer Details',
+        buttonColor: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)'
+      };
+    } else {
+      return {
+        title: 'Transfer Status Updated',
+        subtitle: 'Your transfer status has been updated',
+        headerColor: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)',
+        statusMessage: 'ℹ️ Status Updated',
+        statusColor: '#6c757d',
+        buttonText: 'View Transfer Details',
+        buttonColor: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)'
+      };
+    }
+  }
+
+  /**
+   * Payout transfer email body metni - webhook tipine göre uygun açıklama döndürür
+   */
+  private getPayoutTransferEmailBody(message: string, payoutData: any): string {
+    if (message.includes('pending approval')) {
+      return `Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> is currently pending approval. We will notify you once the approval process is complete.`;
+    } else if (message.includes('approval rejected')) {
+      return `Unfortunately, your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> has been rejected during the approval process. Please contact our support team for more information.`;
+    } else if (message.includes('approval blocked')) {
+      return `Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> has been blocked during the approval process. This may be due to compliance or security reasons.`;
+    } else if (message.includes('requires funding confirmation')) {
+      return `Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> requires funding confirmation before it can proceed. Please confirm the funding details.`;
+    } else if (message.includes('funding failed')) {
+      return `We were unable to fund your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong>. This may be due to insufficient funds or other technical issues.`;
+    } else if (message.includes('funding cancelled')) {
+      return `Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> has been cancelled during the funding process.`;
+    } else if (message.includes('successfully funded')) {
+      return `Great news! Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> has been successfully funded and should arrive in 0-2 business days from <strong>${payoutData.transfer_date || 'N/A'}</strong>.`;
+    } else {
+      return `Your transfer to <strong>${payoutData.beneficiary?.bank_details?.account_name || 'Recipient'}</strong> status has been updated. Here's a summary of this transfer:`;
+    }
   }
 
   /**

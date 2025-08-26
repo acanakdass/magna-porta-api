@@ -61,4 +61,5 @@ export interface PayoutTransferFundingFundedHookData {
   transfer_date: string;
   transfer_method: string;
   updated_at: string;
+  message?: string;
 }

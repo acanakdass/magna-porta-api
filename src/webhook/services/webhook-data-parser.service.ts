@@ -11,9 +11,30 @@ export class WebhookDataParserService {
    */
   parseWebhookData(webhookName: string, dataJson: any): any {
     try {
+      console.log("webhookName")
+      console.log(webhookName)
       switch (webhookName) {
+        case 'payout.transfer.in_approval':
+          return this.parsePayoutTransferFundingFunded(dataJson, webhookName);
+        
+        case 'payout.transfer.approval_rejected':
+          return this.parsePayoutTransferFundingFunded(dataJson, webhookName);
+        
+        case 'payout.transfer.approval_blocked':
+          return this.parsePayoutTransferFundingFunded(dataJson, webhookName);
+        
+        case 'payout.transfer.funding.requires_funding_confirmation':
+          console.log("payout.transfer.funding.requires_funding_confirmation")
+          return this.parsePayoutTransferFundingFunded(dataJson, webhookName);
+        
+        case 'payout.transfer.funding.failed':
+          return this.parsePayoutTransferFundingFunded(dataJson, webhookName);
+        
+        case 'payout.transfer.funding.cancelled':
+          return this.parsePayoutTransferFundingFunded(dataJson, webhookName);
+        
         case 'payout.transfer.funding.funded':
-          return this.parsePayoutTransferFundingFunded(dataJson);
+          return this.parsePayoutTransferFundingFunded(dataJson, webhookName);
         
         case 'connected_account_transfer.new':
           return this.parseConnectedAccountTransfer(dataJson);
@@ -49,10 +70,13 @@ export class WebhookDataParserService {
   }
 
   /**
-   * Payout transfer funding funded webhook data'sını parse eder
+   * Payout transfer webhook data'sını parse eder
    */
-  private parsePayoutTransferFundingFunded(data: any): PayoutTransferFundingFundedHookData {
-    return {
+  private parsePayoutTransferFundingFunded(data: any, webhookName?: string): PayoutTransferFundingFundedHookData {
+    console.log("parsePayoutTransferFundingFunded")
+    //console.log(data)
+    console.log(webhookName)
+    const baseData = {
       amount_beneficiary_receives: data.amount_beneficiary_receives,
       amount_payer_pays: data.amount_payer_pays,
       beneficiary: {
@@ -116,6 +140,37 @@ export class WebhookDataParserService {
       transfer_method: data.transfer_method || '',
       updated_at: data.updated_at || ''
     };
+
+    // Webhook tipine göre mesaj ekle
+    const message = this.getPayoutTransferMessage(webhookName);
+    return {
+      ...baseData,
+      message: message
+    };
+  }
+
+  /**
+   * Payout transfer webhook tipine göre uygun mesaj döndürür
+   */
+  private getPayoutTransferMessage(webhookName?: string): string {
+    switch (webhookName) {
+      case 'payout.transfer.in_approval':
+        return 'Payment transfer is pending approval';
+      case 'payout.transfer.approval_rejected':
+        return 'Payment transfer approval rejected';
+      case 'payout.transfer.approval_blocked':
+        return 'Payment transfer approval blocked';
+      case 'payout.transfer.funding.requires_funding_confirmation':
+        return 'Payment transfer requires funding confirmation';
+      case 'payout.transfer.funding.failed':
+        return 'Payment transfer funding failed';
+      case 'payout.transfer.funding.cancelled':
+        return 'Payment transfer funding cancelled';
+      case 'payout.transfer.funding.funded':
+        return 'Payment transfer successfully funded';
+      default:
+        return 'Payment transfer status updated';
+    }
   }
 
   /**

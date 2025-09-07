@@ -25,10 +25,13 @@ export class AuthService {
     }
 
     async validateUser(email: string, pass: string) {
+        console.log('email', email);
+        console.log('pass', pass);
         const user = await this.usersService.findOneDynamic(
             {email: email, isActive: true},
             ['role', 'role.permissions'],
         );
+        console.log('user', user);
         if (user) {
             let isHashMatched = await bcrypt.compare(pass, user.password)
             if (isHashMatched) {
@@ -40,6 +43,7 @@ export class AuthService {
 
     async login(dto: LoginDto): Promise<BaseApiResponse<LoginResponseDto>> {
         const user = await this.validateUser(dto.email, dto.password);
+        console.log('user', user);
         // console.log('JWT Secret:', process.env.JWT_SECRET);
         const payload = {email: user.email, sub: user.id};
         return {

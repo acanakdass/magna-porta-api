@@ -6,6 +6,7 @@ import {CreateUserDto} from "./dtos/create-user-dto";
 
 import {UserEntity} from "./user.entity";
 import {ApiTags, ApiOperation} from "@nestjs/swagger";
+import { BaseApiResponse } from '../common/dto/api-response-dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -14,13 +15,23 @@ export class UsersController {
 
   @Get()
   @ApiOperation({ summary: 'Get all users' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return this.usersService.findAllWithPagination({...paginationDto});
+  async findAll(@Query() paginationDto: PaginationDto): Promise<BaseApiResponse<PaginatedResponseDto<UserEntity>>> {
+    const result = await this.usersService.findAllWithPagination({...paginationDto});
+    return {
+      success: true,
+      message: 'Users fetched successfully',
+      data: result
+    };
   }
   @Get('paginated')
   @ApiOperation({ summary: 'Get paginated users' })
-  async findAllPaginated(@Query() paginationDto: PaginationDto) {
-    return this.usersService.listUsersPaginated({...paginationDto});
+  async findAllPaginated(@Query() paginationDto: PaginationDto): Promise<BaseApiResponse<PaginatedResponseDto<UserEntity>>> {
+    const result = await this.usersService.listUsersPaginated({...paginationDto});
+    return {
+      success: true,
+      message: 'Users fetched successfully',
+      data: result
+    };
   }
 
   @Get(':id')

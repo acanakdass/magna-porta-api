@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, Get, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
@@ -6,6 +6,7 @@ import { RegisterDto } from './dto/register.dto';
 import { BaseApiResponse  } from "../common/dto/api-response-dto";
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {RegisterResponseDto} from "./dto/register-response.dto";
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -73,5 +74,16 @@ export class AuthController {
   // })
   async register(@Body() registerDto: RegisterDto): Promise<BaseApiResponse<RegisterResponseDto>> {
     return this.authService.register(registerDto);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get current user by access token' })
+  async me(@Req() req): Promise<BaseApiResponse<any>> {
+    return {
+      success: true,
+      message: 'Current user fetched successfully',
+      data: req.user,
+    };
   }
 }

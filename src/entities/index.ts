@@ -10,3 +10,5 @@ export * from './webhook.entity';
 export * from './webhook-event-type.entity';
 export * from './webhook-template.entity';
 export * from './webhook-processing-rule.entity';
+export * from './webhook-channel.entity';
+export * from './webhook-locale.entity';

@@ -51,6 +51,43 @@ export class EmailTemplatesService {
   constructor(private configService: ConfigService) {
     this.LOGO_URL = this.configService.get('LOGO_URL', 'http://209.38.223.41:3001/assets/magnaporta-logos/logo_magna_porta.png');
   }
+
+  private getBaseCss(): string {
+    return `
+      /* Base reset */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; }
+      .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden; }
+      .header { padding: 30px; text-align: center; color: white; }
+      .content { padding: 30px; }
+      .footer { background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef; }
+      .footer-text { font-size: 12px; color: #6c757d; }
+      .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
+      .cta-button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+      .summary-box, .panel { background-color: #f8f9fa; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef; }
+      .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      .table th, .table td { padding: 10px 12px; border-bottom: 1px solid #e9ecef; font-size: 14px; text-align: left; }
+      .kv-label { font-size: 13px; color: #6c757d; font-weight: 500; }
+      .kv-value { font-size: 14px; color: #333; font-weight: 600; text-align: right; }
+      @media (max-width: 600px) {
+        .container { margin: 10px; border-radius: 8px; }
+        .header, .content { padding: 20px; }
+      }
+    `;
+  }
+
+  private renderLogo(): string {
+    return `
+      <div style="display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <img src="${this.LOGO_URL}" alt="Magna Porta" style="max-width:220px;height:auto;filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));"/>
+      </div>
+    `;
+  }
+
+  private headerStyle(mainColor?: string, fallback = '#667eea'): string {
+    const color = (mainColor && mainColor.trim()) ? mainColor : fallback;
+    return `background: ${color};`;
+  }
   
   /**
    * Creates a beautiful transfer notification email template
@@ -64,6 +101,7 @@ export class EmailTemplatesService {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Transfer Notification</title>
         <style>
+          ${this.getBaseCss()}
           * {
             margin: 0;
             padding: 0;
@@ -242,11 +280,8 @@ export class EmailTemplatesService {
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏠</div>
-              <div class="logo-text">Magna Porta</div>
-            </div>
+          <div class="header" style="${this.headerStyle((data as any)?.mainColor, '#667eea')}">
+            ${this.renderLogo()}
             <h1 class="main-heading">Your transfer to ${data.recipientName} is on its way</h1>
             <p class="sub-heading">Secure and reliable money transfers</p>
           </div>
@@ -330,6 +365,7 @@ export class EmailTemplatesService {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Welcome to Magna Porta</title>
         <style>
+          ${this.getBaseCss()}
           * {
             margin: 0;
             padding: 0;
@@ -507,11 +543,8 @@ export class EmailTemplatesService {
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏠</div>
-              <div class="logo-text">Magna Porta</div>
-            </div>
+          <div class="header" style="${this.headerStyle((data as any)?.mainColor, '#667eea')}">
+            ${this.renderLogo()}
             <h1 class="welcome-heading">Welcome to Magna Porta!</h1>
             <p class="welcome-subtitle">Your gateway to seamless financial solutions</p>
           </div>
@@ -570,6 +603,7 @@ export class EmailTemplatesService {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Password Reset Request</title>
         <style>
+          ${this.getBaseCss()}
           * {
             margin: 0;
             padding: 0;
@@ -745,11 +779,8 @@ export class EmailTemplatesService {
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏠</div>
-              <div class="logo-text">Magna Porta</div>
-            </div>
+          <div class="header" style="${this.headerStyle((data as any)?.mainColor, '#dc3545')}">
+            ${this.renderLogo()}
             <h1 class="main-heading">Password Reset Request</h1>
             <p class="sub-heading">Secure account recovery</p>
           </div>
@@ -803,6 +834,7 @@ export class EmailTemplatesService {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Global Account Activated</title>
         <style>
+          ${this.getBaseCss()}
           * {
             margin: 0;
             padding: 0;
@@ -977,11 +1009,8 @@ export class EmailTemplatesService {
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <div class="logo">
-              <div class="logo-icon">🏦</div>
-              <div class="logo-text">Magna Porta</div>
-            </div>
+          <div class="header" style="${this.headerStyle((data as any)?.mainColor, '#28a745')}">
+            ${this.renderLogo()}
             <h1 class="main-heading">Your ${data.accountCurrency} Global Account in ${data.accountLocation} has been activated</h1>
             <p class="sub-heading">Account is ready for use</p>
           </div>
@@ -1063,6 +1092,7 @@ export class EmailTemplatesService {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Şifre Sıfırlama</title>
         <style>
+          ${this.getBaseCss()}
           * {
             margin: 0;
             padding: 0;

@@ -1,18 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WebhookTemplate } from '../../entities/webhook-template.entity';
 import { WebhookEventType } from '../../entities/webhook-event-type.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/models/pagination-dto';
+import { UpsertTemplateDto } from '../dto/upsert-template.dto';
+import { WebhookDataParserService } from '../services/webhook-data-parser.service';
 
-export interface UpsertTemplateDto {
-  eventName: string;
-  channel: 'email' | 'web' | 'slack' | 'internal';
-  locale?: string;
-  subject?: string;
-  body: string;
-  isActive?: boolean;
-}
+// moved to dto file
 
 @Injectable()
 export class WebhookTemplateService {
@@ -21,6 +16,7 @@ export class WebhookTemplateService {
     private readonly templateRepo: Repository<WebhookTemplate>,
     @InjectRepository(WebhookEventType)
     private readonly eventTypeRepo: Repository<WebhookEventType>,
+    private readonly parser: WebhookDataParserService,
   ) {}
 
   async ensureEventType(eventName: string, description?: string): Promise<WebhookEventType> {
@@ -32,28 +28,58 @@ export class WebhookTemplateService {
     return eventType;
   }
 
-  async upsertTemplate(dto: UpsertTemplateDto): Promise<WebhookTemplate> {
-    const eventType = await this.ensureEventType(dto.eventName);
-    const existing = await this.templateRepo.findOne({
-      where: { eventType: { id: eventType.id }, channel: dto.channel, locale: dto.locale ?? 'en' },
-      relations: ['eventType'],
-    });
+  // upsert removed per request
 
-    const payload: Partial<WebhookTemplate> = {
+  async createTemplate(dto: UpsertTemplateDto): Promise<WebhookTemplate> {
+    const eventType = await this.ensureEventType(dto.eventName);
+    const exists = await this.templateRepo.findOne({ where: { eventType: { id: eventType.id }, channel: dto.channel, locale: dto.locale ?? 'en' }, relations: ['eventType'] });
+    if (exists) {
+      throw new BadRequestException('Template already exists for this eventName + channel + locale');
+    }
+    const template = this.templateRepo.create({
       eventType,
       channel: dto.channel,
       locale: dto.locale ?? 'en',
       subject: dto.subject,
+      header: dto.header,
+      subtext1: dto.subtext1,
+      subtext2: dto.subtext2,
+      mainColor: dto.mainColor,
       body: dto.body,
       isActive: dto.isActive ?? true,
-    };
+      tableRowsJson: dto.tableRowsJson,
+    });
+    return this.templateRepo.save(template);
+  }
 
-    if (existing) {
-      Object.assign(existing, payload);
-      return this.templateRepo.save(existing);
+  async updateTemplate(id: number, dto: Partial<UpsertTemplateDto>): Promise<WebhookTemplate> {
+    const template = await this.templateRepo.findOne({ where: { id }, relations: ['eventType'] });
+    if (!template) throw new NotFoundException('Template not found');
+
+    // Eğer eventName/channel/locale değiştirilecekse, çakışmayı kontrol et
+    if (dto.eventName || dto.channel || dto.locale) {
+      const eventType = dto.eventName ? await this.ensureEventType(dto.eventName) : template.eventType;
+      const channel = dto.channel ?? template.channel;
+      const locale = dto.locale ?? template.locale;
+      const conflict = await this.templateRepo.findOne({ where: { eventType: { id: eventType.id }, channel, locale } });
+      if (conflict && conflict.id !== template.id) {
+        throw new BadRequestException('Another template already exists with the same eventName + channel + locale');
+      }
+      template.eventType = eventType;
+      template.channel = channel as any;
+      template.locale = locale;
     }
-    const created = this.templateRepo.create(payload);
-    return this.templateRepo.save(created);
+
+    if (dto.subject !== undefined) template.subject = dto.subject;
+    if (dto.header !== undefined) template.header = dto.header;
+    if (dto.subtext1 !== undefined) template.subtext1 = dto.subtext1;
+    if (dto.subtext2 !== undefined) template.subtext2 = dto.subtext2;
+    if (dto.mainColor !== undefined) template.mainColor = dto.mainColor;
+    if (dto.body !== undefined) template.body = dto.body;
+    if (dto.isActive !== undefined) template.isActive = dto.isActive;
+    if (dto.tableRowsJson !== undefined) template.tableRowsJson = dto.tableRowsJson as any;
+
+    return this.templateRepo.save(template);
   }
 
   async findOne(eventName: string, channel: WebhookTemplate['channel'], locale = 'en'): Promise<WebhookTemplate | null> {
@@ -131,10 +157,88 @@ export class WebhookTemplateService {
     let updated = 0;
     for (const dto of seeds) {
       const before = await this.findOne(dto.eventName, dto.channel, dto.locale ?? 'en');
-      await this.upsertTemplate(dto);
+      await this.createTemplate(dto).catch(async (e) => {
+        if (e?.message?.includes('already exists')) {
+          // try update by fetching existing and updating
+          const existing = await this.findOne(dto.eventName, dto.channel, dto.locale ?? 'en');
+          if (existing) {
+            await this.updateTemplate(existing.id, dto);
+          }
+        } else {
+          throw e;
+        }
+      });
       if (before) updated++; else created++;
     }
     return { created, updated };
+  }
+
+  private resolvePlaceholders(input: string, data: any): string {
+    if (!input) return '';
+    return input.replace(/\{\{\s*([\w\.]+)\s*\}\}/g, (_m, path) => {
+      const parts = String(path).split('.');
+      let value: any = data;
+      for (const p of parts) {
+        if (value && Object.prototype.hasOwnProperty.call(value, p)) {
+          value = value[p];
+        } else {
+          value = '';
+          break;
+        }
+      }
+      return value ?? '';
+    });
+  }
+
+  async renderTemplateById(id: number, data: any = {}): Promise<{ subject: string; html: string }> {
+    const tpl = await this.templateRepo.findOne({ where: { id }, relations: ['eventType'] });
+    if (!tpl) throw new NotFoundException('Template not found');
+
+    const subject = this.resolvePlaceholders(tpl.subject || '', data);
+    const header = this.resolvePlaceholders(tpl.header || '', data);
+    const sub1 = this.resolvePlaceholders(tpl.subtext1 || '', data);
+    const sub2 = this.resolvePlaceholders(tpl.subtext2 || '', data);
+    const bodyHtml = this.resolvePlaceholders(tpl.body || '', data);
+    const mainColor = (tpl.mainColor && tpl.mainColor.trim()) || '#667eea';
+
+    const rows = (tpl.tableRowsJson || []).map(r => ({
+      key: this.resolvePlaceholders(r.key, data),
+      value: this.resolvePlaceholders(r.value, data),
+    }));
+
+    const baseCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f8f9fa;color:#333;line-height:1.6}.container{max-width:600px;margin:0 auto;background-color:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);overflow:hidden}.header{padding:30px;text-align:center;color:#fff}.content{padding:30px}.footer{background-color:#f8f9fa;padding:20px 30px;text-align:center;border-top:1px solid #e9ecef}.footer-text{font-size:12px;color:#6c757d}.summary-box{background-color:#f8f9fa;border-radius:12px;padding:20px;border:1px solid #e9ecef;margin-top:16px}.table{width:100%;border-collapse:collapse;margin-top:10px}.table td{padding:10px 12px;border-bottom:1px solid #e9ecef;font-size:14px}.kv-label{font-size:13px;color:#6c757d;font-weight:500}.kv-value{font-size:14px;color:#333;font-weight:600;text-align:right}`;
+
+    const rowsHtml = rows.map(r => `<tr><td class="kv-label">${r.key}</td><td class="kv-value">${r.value}</td></tr>`).join('');
+
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class="container"><div class="header" style="background:${mainColor};"><div style="display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><img src="/assets/magnaporta-logos/logo_magna_porta.png" alt="Magna Porta" style="max-width:220px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));"/></div><h1>${header}</h1>${sub1?`<p style="opacity:.9;margin-top:8px;">${sub1}</p>`:''}${sub2?`<p style="opacity:.8;margin-top:4px;">${sub2}</p>`:''}</div><div class="content">${bodyHtml}${rows.length?`<div class="summary-box"><table class="table"><tbody>${rowsHtml}</tbody></table></div>`:''}</div><div class="footer"><p class="footer-text">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+
+    return { subject, html };
+  }
+
+  async renderTemplateByEvent(eventName: string, channel: WebhookTemplate['channel'] = 'email', locale = 'en', rawData: any = {}): Promise<{ subject: string; html: string }> {
+    const eventType = await this.eventTypeRepo.findOne({ where: { eventName } });
+    if (!eventType) throw new NotFoundException('Event type not found');
+    const tpl = await this.templateRepo.findOne({ where: { eventType: { id: eventType.id }, channel, locale }, relations: ['eventType'] });
+    if (!tpl) throw new NotFoundException('Template not found for given eventName/channel/locale');
+
+    const parsed = this.parser.parseWebhookData(eventName, rawData);
+
+    // reuse rendering by id logic by faking template fetch path
+    // Duplicate minimal part to avoid extra query
+    const subject = this.resolvePlaceholders(tpl.subject || '', parsed);
+    const header = this.resolvePlaceholders(tpl.header || '', parsed);
+    const sub1 = this.resolvePlaceholders(tpl.subtext1 || '', parsed);
+    const sub2 = this.resolvePlaceholders(tpl.subtext2 || '', parsed);
+    const bodyHtml = this.resolvePlaceholders(tpl.body || '', parsed);
+    const mainColor = (tpl.mainColor && tpl.mainColor.trim()) || '#667eea';
+    const rows = (tpl.tableRowsJson || []).map(r => ({
+      key: this.resolvePlaceholders(r.key, parsed),
+      value: this.resolvePlaceholders(r.value, parsed),
+    }));
+    const baseCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f8f9fa;color:#333;line-height:1.6}.container{max-width:600px;margin:0 auto;background-color:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);overflow:hidden}.header{padding:30px;text-align:center;color:#fff}.content{padding:30px}.footer{background-color:#f8f9fa;padding:20px 30px;text-align:center;border-top:1px solid #e9ecef}.footer-text{font-size:12px;color:#6c757d}.summary-box{background-color:#f8f9fa;border-radius:12px;padding:20px;border:1px solid #e9ecef;margin-top:16px}.table{width:100%;border-collapse:collapse;margin-top:10px}.table td{padding:10px 12px;border-bottom:1px solid #e9ecef;font-size:14px}.kv-label{font-size:13px;color:#6c757d;font-weight:500}.kv-value{font-size:14px;color:#333;font-weight:600;text-align:right}`;
+    const rowsHtml = rows.map(r => `<tr><td class=\"kv-label\">${r.key}</td><td class=\"kv-value\">${r.value}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class=\"container\"><div class=\"header\" style=\"background:${mainColor};\"><div style=\"display:flex;align-items:center;justify-content:center;margin-bottom:16px;\"><img src=\"/assets/magnaporta-logos/logo_magna_porta.png\" alt=\"Magna Porta\" style=\"max-width:220px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));\"/></div><h1>${header}</h1>${sub1?`<p style=\"opacity:.9;margin-top:8px;\">${sub1}</p>`:''}${sub2?`<p style=\"opacity:.8;margin-top:4px;\">${sub2}</p>`:''}</div><div class=\"content\">${bodyHtml}${rows.length?`<div class=\"summary-box\"><table class=\"table\"><tbody>${rowsHtml}</tbody></table></div>`:''}</div><div class=\"footer\"><p class=\"footer-text\">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+    return { subject, html };
   }
 }
 

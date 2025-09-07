@@ -5,6 +5,8 @@ import { Webhook } from '../entities/webhook.entity';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { WebhookDataParserService } from './services/webhook-data-parser.service';
 import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
+import { WebhookTemplateService } from './services/webhook-template.service';
+import { MailService } from '../mail/mail.service';
 import { PaginationDto, PaginatedResponseDto } from '../common/models/pagination-dto';
 
 @Injectable()
@@ -13,6 +15,8 @@ export class WebhookService {
     @InjectRepository(Webhook)
     private webhookRepository: Repository<Webhook>,
     private webhookDataParserService: WebhookDataParserService,
+    private readonly templateService: WebhookTemplateService,
+    private readonly mailService: MailService,
   ) {}
 
   async createWebhook(createWebhookDto: CreateWebhookDto): Promise<Webhook> {
@@ -207,5 +211,22 @@ export class WebhookService {
    */
   async markMailAsSent(webhookId: number): Promise<void> {
     await this.webhookRepository.update(webhookId, { isMailSent: true });
+  }
+
+  async sendWebhookEmail(webhookId: number, to: string | string[], locale = 'en'): Promise<{ subject: string; html: string; recipients: string[] }> {
+    const webhook = await this.findById(webhookId);
+    console.log('webhook', webhook);
+    if (!webhook) throw new Error('Webhook not found');
+
+    const { subject, html } = await this.templateService.renderTemplateByEvent(
+      webhook.webhookName,
+      'email',
+      locale,
+      webhook.dataJson,
+    );
+
+    const recipients = Array.isArray(to) ? to : [to];
+    await this.mailService.sendHtmlMail(recipients, subject || 'Notification', html);
+    return { subject: subject || 'Notification', html, recipients };
   }
 }

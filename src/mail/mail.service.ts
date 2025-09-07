@@ -104,6 +104,7 @@ export class MailService {
     }
 
     try {
+      console.log('mailOptionsHtml', mailOptions.html);
       return await provider.sendMail(mailOptions);
     } catch (error) {
       this.logger.error(`Mail gönderimi başarısız: ${error.message}`);

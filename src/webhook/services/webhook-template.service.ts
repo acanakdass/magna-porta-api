@@ -125,6 +125,10 @@ export class WebhookTemplateService {
     await this.templateRepo.remove(template);
   }
 
+  async findById(id: number): Promise<WebhookTemplate | null> {
+    return this.templateRepo.findOne({ where: { id }, relations: ['eventType'] });
+  }
+
   async seedDefaults(): Promise<{ created: number; updated: number }> {
     const seeds: UpsertTemplateDto[] = [
       {

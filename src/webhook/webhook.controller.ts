@@ -7,6 +7,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nes
 import { BaseApiResponse } from '../common/dto/api-response-dto';
 import { PaginationDto, PaginatedResponseDto } from '../common/models/pagination-dto';
 import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
+import { WebhookTemplateService } from './services/webhook-template.service';
 
 @ApiTags('webhooks')
 @Controller('webhooks')
@@ -14,6 +15,7 @@ export class WebhookController {
   constructor(
     private readonly webhookService: WebhookService,
     private readonly webhookMailSchedulerService: WebhookMailSchedulerService,
+    private readonly webhookTemplateService: WebhookTemplateService,
   ) {}
 
   @Post('receive')
@@ -176,5 +178,33 @@ export class WebhookController {
       receivedAt: webhook.receivedAt,
       isMailSent: webhook.isMailSent
     }));
+  }
+
+  @Get('preview')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Preview a template by templateId and random webhook data' })
+  async previewTemplate(@Query('templateId') templateId: number): Promise<BaseApiResponse<{ subject: string; html: string }>> {
+    const tpl = await this.webhookTemplateService.findById(Number(templateId));
+    if (!tpl) return { success: false, message: 'Template not found' } as any;
+    // random webhook by event name
+    const candidates = await this.webhookService.findByWebhookName(tpl.eventType.eventName);
+    if (!candidates || candidates.length === 0) return { success: false, message: 'No webhook data found for this event type' } as any;
+    const random = candidates[Math.floor(Math.random() * candidates.length)];
+    const rendered = await this.webhookTemplateService.renderTemplateByEvent(tpl.eventType.eventName, tpl.channel as any, tpl.locale, random.dataJson);
+    return { success: true, message: 'Preview generated', data: rendered };
+  }
+
+  @Post(':id/send-email')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Send webhook as email using its template' })
+  @ApiBody({ schema: { properties: { to: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] }, locale: { type: 'string', default: 'en' } } } })
+  async sendEmail(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { to: string | string[]; locale?: string },
+  ): Promise<BaseApiResponse<{ subject: string; html: string; recipients: string[] }>> {
+    const data = await this.webhookService.sendWebhookEmail(id, body.to, body.locale || 'en');
+    return { success: true, message: 'Email sent', data };
   }
 }

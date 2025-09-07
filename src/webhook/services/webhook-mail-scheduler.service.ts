@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { WebhookService } from '../webhook.service';
 import { MailService } from '../../mail/mail.service';
+import { WebhookTemplateService } from './webhook-template.service';
 import { CompaniesService } from '../../company/companies.service';
 import { EmailTemplatesService, TransferNotificationData } from '../../mail/email-templates.service';
 import { ConversionSettledEmailData } from '../models/conversion-settled.model';
@@ -22,6 +23,7 @@ export class WebhookMailSchedulerService {
     private readonly companiesService: CompaniesService,
     private readonly configService: ConfigService,
     private readonly emailTemplatesService: EmailTemplatesService,
+    private readonly webhookTemplateService: WebhookTemplateService,
     private readonly webhookDataParserService: WebhookDataParserService,
   ) {
     // Logo URL'ini environment'dan al, fallback olarak production URL
@@ -62,7 +64,7 @@ export class WebhookMailSchedulerService {
    */
   private async sendWebhookNotification(webhook: any): Promise<void> {
     try {
-      const subject = this.generateWebhookSubject(webhook.webhookName);
+      let subject = this.generateWebhookSubject(webhook.webhookName);
       
               // Account ID ile company bul
         const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
@@ -75,7 +77,20 @@ export class WebhookMailSchedulerService {
           }
         }
         
-        const htmlContent = this.generateWebhookEmailContent(webhook, company);
+        subject = this.generateWebhookSubject(webhook.webhookName);
+        let htmlContent: string;
+        try {
+          const rendered = await this.webhookTemplateService.renderTemplateByEvent(
+            webhook.webhookName,
+            'email',
+            'en',
+            webhook.dataJson,
+          );
+          subject = rendered.subject || subject;
+          htmlContent = rendered.html;
+        } catch {
+          htmlContent = this.generateWebhookEmailContent(webhook, company);
+        }
       
       if (!company) {
         this.logger.warn(`Company bulunamadı: ${webhook.accountId}`);
@@ -114,11 +129,7 @@ export class WebhookMailSchedulerService {
       // Her user'a mail gönder
       const emailAddresses = usersWithEmail.map(user => user.email);
       
-      await this.mailService.sendHtmlMail(
-        emailAddresses,
-        subject,
-        htmlContent
-      );
+      await this.mailService.sendHtmlMail(emailAddresses, subject, htmlContent);
 
       // Webhook'u mail gönderildi olarak işaretle
       await this.webhookService.markMailAsSent(webhook.id);

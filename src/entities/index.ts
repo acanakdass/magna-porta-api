@@ -7,3 +7,6 @@ export * from './currency.entity';
 export * from './currency-group.entity';
 export * from './company-currency-rate.entity';
 export * from './webhook.entity';
+export * from './webhook-event-type.entity';
+export * from './webhook-template.entity';
+export * from './webhook-processing-rule.entity';

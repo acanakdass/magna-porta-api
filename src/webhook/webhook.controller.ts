@@ -1,9 +1,11 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { Webhook } from '../entities/webhook.entity';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { BaseApiResponse } from '../common/dto/api-response-dto';
+import { PaginationDto, PaginatedResponseDto } from '../common/models/pagination-dto';
 import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
 
 @ApiTags('webhooks')
@@ -25,19 +27,34 @@ export class WebhookController {
   @Get()
   //@UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Tüm webhook\'ları listele' })
+  @ApiOperation({ summary: 'Tüm webhook\'ları listele (paginated destekli)' })
   @ApiResponse({ status: 200, description: 'Webhook listesi başarıyla getirildi' })
-  async findAll(): Promise<Webhook[]> {
-    return await this.webhookService.findAll();
+  async findAll(@Query() query: PaginationDto & { webhookName?: string; accountId?: string }): Promise<BaseApiResponse<PaginatedResponseDto<Webhook> | Webhook[]>> {
+    if (query.page || query.limit || query.order || query.orderBy || query.webhookName || query.accountId) {
+      const data = await this.webhookService.findAllPaginated(query);
+      return { success: true, message: 'Webhooks fetched', data };
+    }
+    const data = await this.webhookService.findAll();
+    return { success: true, message: 'Webhooks fetched', data } as BaseApiResponse<Webhook[]>;
   }
 
-  @Get(':id')
+  @Get('paginated')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Webhook listesi (paginated)' })
+  @ApiResponse({ status: 200, description: 'Webhook listesi başarıyla getirildi' })
+  async findAllOnlyPaginated(@Query() query: PaginationDto & { webhookName?: string; accountId?: string }): Promise<BaseApiResponse<PaginatedResponseDto<Webhook>>> {
+    const data = await this.webhookService.findAllPaginated(query);
+    return { success: true, message: 'Webhooks fetched', data };
+  }
+
+  @Get('by-id/:id')
   //@UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ID ile webhook getir' })
   @ApiResponse({ status: 200, description: 'Webhook başarıyla getirildi' })
   @ApiResponse({ status: 404, description: 'Webhook bulunamadı' })
-  async findById(@Param('id') id: number): Promise<Webhook> {
+  async findById(@Param('id', ParseIntPipe) id: number): Promise<Webhook> {
     return await this.webhookService.findById(id);
   }
 
@@ -78,6 +95,16 @@ export class WebhookController {
   @ApiResponse({ status: 200, description: 'Parsed webhook listesi başarıyla getirildi' })
   async findAllParsed(): Promise<any[]> {
     return await this.webhookService.findParsedWebhooks();
+  }
+
+  @Get('parsed/paginated')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Parsed webhooks (paginated)' })
+  @ApiResponse({ status: 200, description: 'Parsed webhook listesi başarıyla getirildi' })
+  async findAllParsedPaginated(@Query() query: PaginationDto & { webhookName?: string; accountId?: string }): Promise<BaseApiResponse<PaginatedResponseDto<any>>> {
+    const data = await this.webhookService.findParsedWebhooksPaginated(query);
+    return { success: true, message: 'Parsed webhooks fetched', data };
   }
 
   @Get('parsed/:id')

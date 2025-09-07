@@ -7,7 +7,8 @@ import {CompanyEntity} from "./company.entity";
 import {CompaniesService} from "./companies.service";
 import {CreateCompanyDto} from "./dtos/create-company-dto";
 import {UpdateCompanyDto} from "./dtos/update-company-dto";
-import {ApiTags} from "@nestjs/swagger";
+import {ApiOperation, ApiTags} from "@nestjs/swagger";
+import { BaseApiResponse } from '../common/dto/api-response-dto';
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -15,12 +16,16 @@ export class CompaniesController {
   constructor(private readonly service: CompaniesService) {}
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return this.service.findAllWithPagination({...paginationDto});
+  @ApiOperation({ summary: 'Get all companies' })
+  async findAll(@Query() paginationDto: PaginationDto): Promise<BaseApiResponse<PaginatedResponseDto<CompanyEntity>>> {
+    const result = await this.service.findAllWithPagination({...paginationDto});
+    return { success: true, message: 'Companies fetched successfully', data: result };
   }
   @Get('paginated')
-  async findAllPaginated(@Query() paginationDto: PaginationDto) {
-    return this.service.listCompaniesPaginated({...paginationDto});
+  @ApiOperation({ summary: 'Get paginated companies' })
+  async findAllPaginated(@Query() paginationDto: PaginationDto): Promise<BaseApiResponse<PaginatedResponseDto<CompanyEntity>>> {
+    const result = await this.service.listCompaniesPaginated({...paginationDto});
+    return { success: true, message: 'Companies fetched successfully', data: result };
   }
 
   @Get(':id')

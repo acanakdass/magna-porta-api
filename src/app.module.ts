@@ -32,7 +32,7 @@ import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
             password: process.env.DB_PASS,
             database: process.env.DB_NAME,
             autoLoadEntities: true,
-            synchronize: false,
+            synchronize: true,
             logging: false
         }),
         AuthModule,

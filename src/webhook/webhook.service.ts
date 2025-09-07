@@ -5,6 +5,7 @@ import { Webhook } from '../entities/webhook.entity';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { WebhookDataParserService } from './services/webhook-data-parser.service';
 import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
+import { PaginationDto, PaginatedResponseDto } from '../common/models/pagination-dto';
 
 @Injectable()
 export class WebhookService {
@@ -29,6 +30,33 @@ export class WebhookService {
     return await this.webhookRepository.find({
       order: { receivedAt: 'DESC' },
     });
+  }
+
+  async findAllPaginated(query: PaginationDto & { webhookName?: string; accountId?: string }): Promise<PaginatedResponseDto<Webhook>> {
+    const page = Number(query.page) || 1;
+    const limit = Math.min(Number(query.limit) || 10, 100);
+    const skip = (page - 1) * limit;
+    const orderBy = query.orderBy || 'receivedAt';
+    const order = (query.order as any) || 'DESC';
+
+    const qb = this.webhookRepository.createQueryBuilder('wh')
+      .orderBy(`wh.${orderBy}`, order)
+      .skip(skip)
+      .take(limit);
+
+    if (query.webhookName) qb.andWhere('wh.webhookName = :webhookName', { webhookName: query.webhookName });
+    if (query.accountId) qb.andWhere('wh.accountId = :accountId', { accountId: query.accountId });
+
+    const [rows, total] = await qb.getManyAndCount();
+    return {
+      data: rows,
+      meta: {
+        totalItems: total,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
   }
 
   async findById(id: number): Promise<Webhook> {
@@ -78,6 +106,47 @@ export class WebhookService {
         webhook.dataJson
       )
     }));
+  }
+
+  async findParsedWebhooksPaginated(query: PaginationDto & { webhookName?: string; accountId?: string }): Promise<PaginatedResponseDto<any>> {
+    const page = Number(query.page) || 1;
+    const limit = Math.min(Number(query.limit) || 10, 100);
+    const skip = (page - 1) * limit;
+    const orderBy = query.orderBy || 'receivedAt';
+    const order = (query.order as any) || 'DESC';
+
+    const qb = this.webhookRepository.createQueryBuilder('wh')
+      .orderBy(`wh.${orderBy}`, order)
+      .skip(skip)
+      .take(limit);
+
+    if (query.webhookName) qb.andWhere('wh.webhookName = :webhookName', { webhookName: query.webhookName });
+    if (query.accountId) qb.andWhere('wh.accountId = :accountId', { accountId: query.accountId });
+
+    const [rows, total] = await qb.getManyAndCount();
+    const parsed = rows.map(webhook => ({
+      id: webhook.id,
+      accountId: webhook.accountId,
+      createdAt: webhook.createdAt,
+      webhookId: webhook.webhookId,
+      webhookName: webhook.webhookName,
+      receivedAt: webhook.receivedAt,
+      updatedAt: webhook.updatedAt,
+      parsedData: this.webhookDataParserService.parseWebhookData(
+        webhook.webhookName,
+        webhook.dataJson
+      )
+    }));
+
+    return {
+      data: parsed,
+      meta: {
+        totalItems: total,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
   }
 
   /**

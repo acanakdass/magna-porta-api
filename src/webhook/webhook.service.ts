@@ -8,6 +8,8 @@ import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.s
 import { WebhookTemplateService } from './services/webhook-template.service';
 import { MailService } from '../mail/mail.service';
 import { PaginationDto, PaginatedResponseDto } from '../common/models/pagination-dto';
+import { BaseApiResponse } from '../common/dto/api-response-dto';
+import { CompaniesService } from '../company/companies.service';
 
 @Injectable()
 export class WebhookService {
@@ -17,6 +19,7 @@ export class WebhookService {
     private webhookDataParserService: WebhookDataParserService,
     private readonly templateService: WebhookTemplateService,
     private readonly mailService: MailService,
+    private readonly companiesService: CompaniesService,
   ) {}
 
   async createWebhook(createWebhookDto: CreateWebhookDto): Promise<Webhook> {
@@ -228,5 +231,202 @@ export class WebhookService {
     const recipients = Array.isArray(to) ? to : [to];
     await this.mailService.sendHtmlMail(recipients, subject || 'Notification', html);
     return { subject: subject || 'Notification', html, recipients };
+  }
+
+  async sendWebhookEmailById(webhookId: number): Promise<BaseApiResponse<{ subject: string; html: string; recipients: string[] }>> {
+    try {
+      // Webhook'u bul
+      const webhook = await this.webhookRepository.findOne({
+        where: { id: webhookId }
+      });
+
+      if (!webhook) {
+        return {
+          success: false,
+          data: null,
+          message: 'Webhook not found',
+          loading: false
+        };
+      }
+
+      // Company'yi bul (account ID ile)
+      const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
+      
+      if (!company) {
+        return {
+          success: false,
+          data: null,
+          message: 'Company not found for this webhook',
+          loading: false
+        };
+      }
+
+      // Company'nin aktif user'larını al
+      const activeUsers = company.users?.filter(user => user.isActive) || [];
+      
+      if (activeUsers.length === 0) {
+        return {
+          success: false,
+          data: null,
+          message: 'No active users found for this company',
+          loading: false
+        };
+      }
+
+      // User email'lerini al
+      const recipientEmails = activeUsers.map(user => user.email);
+
+      // Template'i render et
+      let subject = this.generateWebhookSubject(webhook.webhookName);
+      let htmlContent: string;
+      
+      try {
+        const rendered = await this.templateService.renderTemplateByEvent(
+          webhook.webhookName,
+          'email',
+          'en',
+          webhook.dataJson,
+        );
+        subject = rendered.subject || subject;
+        htmlContent = rendered.html;
+      } catch (error) {
+        // Fallback content
+        htmlContent = this.generateWebhookEmailContent(webhook, company);
+      }
+
+      // Mail gönder
+      await this.mailService.sendHtmlMail(recipientEmails, subject, htmlContent);
+
+      // Webhook'u mail gönderildi olarak işaretle
+      webhook.isMailSent = true;
+      await this.webhookRepository.save(webhook);
+
+      return {
+        success: true,
+        data: {
+          subject: subject,
+          html: htmlContent,
+          recipients: recipientEmails
+        },
+        message: `Webhook email sent to ${recipientEmails.length} recipients`,
+        loading: false
+      };
+
+    } catch (error) {
+      console.error('Error in sendWebhookEmailById:', error);
+      return {
+        success: false,
+        data: null,
+        message: `Failed to send webhook email: ${error.message}`,
+        loading: false
+      };
+    }
+  }
+
+  private generateWebhookSubject(webhookName: string): string {
+    const eventMap: { [key: string]: string } = {
+      'payout.transfer.funding.funded': 'Transfer Funded',
+      'payout.transfer.settled': 'Transfer Settled',
+      'payout.transfer.failed': 'Transfer Failed',
+      'conversion.settled': 'Conversion Settled',
+      'conversion.completed': 'Conversion Completed',
+      'account.activated': 'Account Activated',
+      'account.deactivated': 'Account Deactivated'
+    };
+    
+    return eventMap[webhookName] || `Webhook: ${webhookName}`;
+  }
+
+  async previewWebhookEmail(webhookId: number): Promise<BaseApiResponse<{ subject: string; html: string; company: any; recipients: string[] }>> {
+    try {
+      // Webhook'u bul
+      const webhook = await this.webhookRepository.findOne({
+        where: { id: webhookId }
+      });
+
+      if (!webhook) {
+        return {
+          success: false,
+          data: null,
+          message: 'Webhook not found',
+          loading: false
+        };
+      }
+
+      // Company'yi bul (account ID ile)
+      const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
+      
+      if (!company) {
+        return {
+          success: false,
+          data: null,
+          message: 'Company not found for this webhook',
+          loading: false
+        };
+      }
+
+      // Template'i render et
+      let subject = this.generateWebhookSubject(webhook.webhookName);
+      let htmlContent: string;
+      
+      try {
+        const rendered = await this.templateService.renderTemplateByEvent(
+          webhook.webhookName,
+          'email',
+          'en',
+          webhook.dataJson,
+        );
+        subject = rendered.subject || subject;
+        htmlContent = rendered.html;
+      } catch (error) {
+        // Fallback content
+        htmlContent = this.generateWebhookEmailContent(webhook, company);
+      }
+
+      // Company'nin aktif user'larını al
+      const activeUsers = company.users?.filter(user => user.isActive) || [];
+      const recipientEmails = activeUsers.map(user => user.email);
+
+      return {
+        success: true,
+        data: {
+          subject,
+          html: htmlContent,
+          company: {
+            id: company.id,
+            name: company.name,
+            airwallex_account_id: company.airwallex_account_id
+          },
+          recipients: recipientEmails
+        },
+        message: 'Webhook email preview generated successfully',
+        loading: false
+      };
+
+    } catch (error) {
+      console.error('Error in previewWebhookEmail:', error);
+      return {
+        success: false,
+        data: null,
+        message: `Failed to generate webhook email preview: ${error.message}`,
+        loading: false
+      };
+    }
+  }
+
+  private generateWebhookEmailContent(webhook: Webhook, company: any): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Webhook Notification</h2>
+        <p><strong>Company:</strong> ${company.name}</p>
+        <p><strong>Event:</strong> ${webhook.webhookName}</p>
+        <p><strong>Account ID:</strong> ${webhook.accountId}</p>
+        <p><strong>Received At:</strong> ${webhook.receivedAt}</p>
+        <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0;">
+          <h3>Webhook Data:</h3>
+          <pre style="white-space: pre-wrap; font-size: 12px;">${JSON.stringify(webhook.dataJson, null, 2)}</pre>
+        </div>
+      </div>
+    `;
   }
 }

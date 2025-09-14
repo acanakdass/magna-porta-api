@@ -3,7 +3,7 @@ import { WebhookService } from './webhook.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { Webhook } from '../entities/webhook.entity';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { BaseApiResponse } from '../common/dto/api-response-dto';
 import { PaginationDto, PaginatedResponseDto } from '../common/models/pagination-dto';
 import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
@@ -206,5 +206,70 @@ export class WebhookController {
   ): Promise<BaseApiResponse<{ subject: string; html: string; recipients: string[] }>> {
     const data = await this.webhookService.sendWebhookEmail(id, body.to, body.locale || 'en');
     return { success: true, message: 'Email sent', data };
+  }
+
+  @Post(':id/send-email-to-company')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Send webhook as email to company users automatically' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Webhook email sent to company users successfully',
+    type: BaseApiResponse<{ subject: string; html: string; recipients: string[] }>
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Webhook or company not found',
+    schema: {
+      example: {
+        success: false,
+        data: null,
+        message: "Webhook not found"
+      }
+    }
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'No active users found for company',
+    schema: {
+      example: {
+        success: false,
+        data: null,
+        message: "No active users found for this company"
+      }
+    }
+  })
+  @ApiParam({ name: 'id', description: 'Webhook ID' })
+  async sendEmailToCompany(
+    @Param('id', ParseIntPipe) id: number
+  ): Promise<BaseApiResponse<{ subject: string; html: string; recipients: string[] }>> {
+    return await this.webhookService.sendWebhookEmailById(id);
+  }
+
+  @Get(':id/preview-email')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Preview webhook email HTML without sending' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Webhook email preview generated successfully',
+    type: BaseApiResponse<{ subject: string; html: string; company: any; recipients: string[] }>
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Webhook or company not found',
+    schema: {
+      example: {
+        success: false,
+        data: null,
+        message: "Webhook not found"
+      }
+    }
+  })
+  @ApiParam({ name: 'id', description: 'Webhook ID' })
+  async previewEmail(
+    @Param('id', ParseIntPipe) id: number
+  ): Promise<BaseApiResponse<{ subject: string; html: string; company: any; recipients: string[] }>> {
+    return await this.webhookService.previewWebhookEmail(id);
   }
 }

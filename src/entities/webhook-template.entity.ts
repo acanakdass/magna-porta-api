@@ -39,6 +39,9 @@ export class WebhookTemplate extends BaseEntity {
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
+
+  @Column({ name: 'auto_send_mail', type: 'boolean', default: false })
+  autoSendMail: boolean;
 }
 
 

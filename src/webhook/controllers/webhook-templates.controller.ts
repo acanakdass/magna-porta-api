@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Patch, Query, ParseIntPipe, Res } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
 import { Response } from 'express';
 import { WebhookTemplateService } from '../services/webhook-template.service';
 import { BaseApiResponse } from '../../common/dto/api-response-dto';
@@ -55,9 +55,10 @@ export class WebhookTemplatesController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a template by id' })
-  async remove(@Param('id') id: number): Promise<BaseApiResponse<null>> {
-    await this.templatesService.remove(Number(id));
-    return { success: true, message: 'Template deleted' } as BaseApiResponse<null>;
+  @ApiParam({ name: 'id', description: 'Template ID to delete', type: 'number' })
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<BaseApiResponse<null>> {
+    await this.templatesService.remove(id);
+    return { success: true, message: 'Template deleted', loading: false } as BaseApiResponse<null>;
   }
 
   @Post('seed')

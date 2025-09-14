@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { WebhookTemplate } from '../../entities/webhook-template.entity';
 import { WebhookEventType } from '../../entities/webhook-event-type.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/models/pagination-dto';
@@ -11,13 +12,18 @@ import { WebhookDataParserService } from '../services/webhook-data-parser.servic
 
 @Injectable()
 export class WebhookTemplateService {
+  private readonly LOGO_URL: string;
+
   constructor(
     @InjectRepository(WebhookTemplate)
     private readonly templateRepo: Repository<WebhookTemplate>,
     @InjectRepository(WebhookEventType)
     private readonly eventTypeRepo: Repository<WebhookEventType>,
     private readonly parser: WebhookDataParserService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.LOGO_URL = this.configService.get('LOGO_URL', 'http://localhost:3001/assets/magnaporta-logos/logo_magna_porta.png');
+  }
 
   async ensureEventType(eventName: string, description?: string): Promise<WebhookEventType> {
     let eventType = await this.eventTypeRepo.findOne({ where: { eventName } });
@@ -47,6 +53,7 @@ export class WebhookTemplateService {
       mainColor: dto.mainColor,
       body: dto.body,
       isActive: dto.isActive ?? true,
+      autoSendMail: dto.autoSendMail ?? false,
       tableRowsJson: dto.tableRowsJson,
     });
     return this.templateRepo.save(template);
@@ -77,6 +84,7 @@ export class WebhookTemplateService {
     if (dto.mainColor !== undefined) template.mainColor = dto.mainColor;
     if (dto.body !== undefined) template.body = dto.body;
     if (dto.isActive !== undefined) template.isActive = dto.isActive;
+    if (dto.autoSendMail !== undefined) template.autoSendMail = dto.autoSendMail;
     if (dto.tableRowsJson !== undefined) template.tableRowsJson = dto.tableRowsJson as any;
 
     return this.templateRepo.save(template);
@@ -138,6 +146,7 @@ export class WebhookTemplateService {
         subject: 'Your conversion has settled',
         body: '<h2>Conversion Settled</h2><p>Short Ref: {{shortReferenceId}}</p><p>Status: {{status}}</p>',
         isActive: true,
+        autoSendMail: false,
       },
       {
         eventName: 'global_account.active',
@@ -146,6 +155,7 @@ export class WebhookTemplateService {
         subject: 'Your global account is active',
         body: '<h2>Account Active</h2><p>Account: {{airwallexAccount}}</p><p>IBAN: {{iban}}</p>',
         isActive: true,
+        autoSendMail: false,
       },
       {
         eventName: 'payout.transfer.funding.funded',
@@ -154,6 +164,7 @@ export class WebhookTemplateService {
         subject: 'Your payout has been funded',
         body: '<h2>Payout Funded</h2><p>Amount: {{amount_payer_pays.amount}} {{amount_payer_pays.currency}}</p><p>Status: {{status}}</p>',
         isActive: true,
+        autoSendMail: false,
       },
     ];
 
@@ -214,7 +225,7 @@ export class WebhookTemplateService {
 
     const rowsHtml = rows.map(r => `<tr><td class="kv-label">${r.key}</td><td class="kv-value">${r.value}</td></tr>`).join('');
 
-    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class="container"><div class="header" style="background:${mainColor};"><div style="display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><img src="/assets/magnaporta-logos/logo_magna_porta.png" alt="Magna Porta" style="max-width:220px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));"/></div><h1>${header}</h1>${sub1?`<p style="opacity:.9;margin-top:8px;">${sub1}</p>`:''}${sub2?`<p style="opacity:.8;margin-top:4px;">${sub2}</p>`:''}</div><div class="content">${bodyHtml}${rows.length?`<div class="summary-box"><table class="table"><tbody>${rowsHtml}</tbody></table></div>`:''}</div><div class="footer"><p class="footer-text">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class="container"><div class="header" style="background:${mainColor};"><div style="display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><img src="${this.LOGO_URL}" alt="Magna Porta" style="max-width:220px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));"/></div><h1>${header}</h1>${sub1?`<p style="opacity:.9;margin-top:8px;">${sub1}</p>`:''}${sub2?`<p style="opacity:.8;margin-top:4px;">${sub2}</p>`:''}</div><div class="content">${bodyHtml}${rows.length?`<div class="summary-box"><table class="table"><tbody>${rowsHtml}</tbody></table></div>`:''}</div><div class="footer"><p class="footer-text">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
 
     return { subject, html };
   }
@@ -241,7 +252,7 @@ export class WebhookTemplateService {
     }));
     const baseCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f8f9fa;color:#333;line-height:1.6}.container{max-width:600px;margin:0 auto;background-color:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);overflow:hidden}.header{padding:30px;text-align:center;color:#fff}.content{padding:30px}.footer{background-color:#f8f9fa;padding:20px 30px;text-align:center;border-top:1px solid #e9ecef}.footer-text{font-size:12px;color:#6c757d}.summary-box{background-color:#f8f9fa;border-radius:12px;padding:20px;border:1px solid #e9ecef;margin-top:16px}.table{width:100%;border-collapse:collapse;margin-top:10px}.table td{padding:10px 12px;border-bottom:1px solid #e9ecef;font-size:14px}.kv-label{font-size:13px;color:#6c757d;font-weight:500}.kv-value{font-size:14px;color:#333;font-weight:600;text-align:right}`;
     const rowsHtml = rows.map(r => `<tr><td class=\"kv-label\">${r.key}</td><td class=\"kv-value\">${r.value}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class=\"container\"><div class=\"header\" style=\"background:${mainColor};\"><div style=\"display:flex;align-items:center;justify-content:center;margin-bottom:16px;\"><img src=\"/assets/magnaporta-logos/logo_magna_porta.png\" alt=\"Magna Porta\" style=\"max-width:220px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));\"/></div><h1>${header}</h1>${sub1?`<p style=\"opacity:.9;margin-top:8px;\">${sub1}</p>`:''}${sub2?`<p style=\"opacity:.8;margin-top:4px;\">${sub2}</p>`:''}</div><div class=\"content\">${bodyHtml}${rows.length?`<div class=\"summary-box\"><table class=\"table\"><tbody>${rowsHtml}</tbody></table></div>`:''}</div><div class=\"footer\"><p class=\"footer-text\">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+    const html = `<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class=\"container\"><div class=\"header\" style=\"background:${mainColor};\"><div style=\"display:flex;align-items:center;justify-content:center;margin-bottom:16px;\"><img src=\"${this.LOGO_URL}\" alt=\"Magna Porta\" style=\"max-width:220px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));\"/></div><h1>${header}</h1>${sub1?`<p style=\"opacity:.9;margin-top:8px;\">${sub1}</p>`:''}${sub2?`<p style=\"opacity:.8;margin-top:4px;\">${sub2}</p>`:''}</div><div class=\"content\">${bodyHtml}${rows.length?`<div class=\"summary-box\"><table class=\"table\"><tbody>${rowsHtml}</tbody></table></div>`:''}</div><div class=\"footer\"><p class=\"footer-text\">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
     return { subject, html };
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { CurrencyService } from './currency.service';
 import { CurrencySeedService } from './currency.seed';
@@ -7,7 +7,12 @@ import { BaseApiResponse } from '../common/dto/api-response-dto';
 import { 
     CreateCurrencyDto, 
     CreateCurrencyGroupDto, 
-    CreateCompanyRateDto 
+    CreateCompanyRateDto,
+    AssignCurrencyGroupDto,
+    BulkCompanyRateDto,
+    UpdateCurrencyGroupDto,
+    UpdateCompanyRateDto,
+    UpdateCurrencyDto
 } from './dtos';
 import { 
     CurrencyEntity, 
@@ -49,6 +54,21 @@ export class CurrencyController {
         return await this.currencyService.getAllCurrencyGroups();
     }
 
+    @Put('groups/:id')
+    @ApiOperation({ summary: 'Update currency group and assign currencies' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Currency group updated successfully',
+        type: BaseApiResponse<CurrencyGroupEntity>
+    })
+    @ApiParam({ name: 'id', description: 'Currency group ID' })
+    async updateCurrencyGroup(
+        @Param('id') groupId: number,
+        @Body() updateDto: UpdateCurrencyGroupDto
+    ): Promise<BaseApiResponse<CurrencyGroupEntity>> {
+        return await this.currencyService.updateCurrencyGroup(groupId, updateDto);
+    }
+
     // Currency Endpoints
     @Post()
     @ApiOperation({ summary: 'Create a new currency' })
@@ -61,6 +81,105 @@ export class CurrencyController {
         @Body() createDto: CreateCurrencyDto
     ): Promise<BaseApiResponse<CurrencyEntity>> {
         return await this.currencyService.createCurrency(createDto);
+    }
+
+    @Put(':id')
+    @ApiOperation({ summary: 'Update currency' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Currency updated successfully',
+        type: BaseApiResponse<CurrencyEntity>
+    })
+    @ApiResponse({
+        status: 404,
+        description: 'Currency or currency group not found',
+        schema: {
+            example: {
+                success: false,
+                data: null,
+                message: "Currency not found"
+            }
+        }
+    })
+    @ApiResponse({
+        status: 409,
+        description: 'Currency code already exists',
+        schema: {
+            example: {
+                success: false,
+                data: null,
+                message: "Currency code already exists"
+            }
+        }
+    })
+    @ApiParam({ name: 'id', description: 'Currency ID' })
+    async updateCurrency(
+        @Param('id') currencyId: number,
+        @Body() updateDto: UpdateCurrencyDto
+    ): Promise<BaseApiResponse<CurrencyEntity>> {
+        const result = await this.currencyService.updateCurrency(currencyId, updateDto);
+        
+        // If the service returns an error, throw an HTTP exception with proper status code
+        if (!result.success) {
+            if (result.message.includes('not found')) {
+                throw new HttpException(result, HttpStatus.NOT_FOUND);
+            } else if (result.message.includes('already exists')) {
+                throw new HttpException(result, HttpStatus.CONFLICT);
+            } else {
+                throw new HttpException(result, HttpStatus.BAD_REQUEST);
+            }
+        }
+        
+        return result;
+    }
+
+    @Delete(':id')
+    @ApiOperation({ summary: 'Delete currency' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Currency deleted successfully',
+        type: BaseApiResponse<null>
+    })
+    @ApiResponse({
+        status: 404,
+        description: 'Currency not found',
+        schema: {
+            example: {
+                success: false,
+                data: null,
+                message: "Currency not found"
+            }
+        }
+    })
+    @ApiResponse({
+        status: 409,
+        description: 'Cannot delete currency that is used in company rates',
+        schema: {
+            example: {
+                success: false,
+                data: null,
+                message: "Cannot delete currency that is used in company rates"
+            }
+        }
+    })
+    @ApiParam({ name: 'id', description: 'Currency ID' })
+    async deleteCurrency(
+        @Param('id') currencyId: number
+    ): Promise<BaseApiResponse<null>> {
+        const result = await this.currencyService.deleteCurrency(currencyId);
+        
+        // If the service returns an error, throw an HTTP exception with proper status code
+        if (!result.success) {
+            if (result.message.includes('not found')) {
+                throw new HttpException(result, HttpStatus.NOT_FOUND);
+            } else if (result.message.includes('Cannot delete')) {
+                throw new HttpException(result, HttpStatus.CONFLICT);
+            } else {
+                throw new HttpException(result, HttpStatus.BAD_REQUEST);
+            }
+        }
+        
+        return result;
     }
 
     @Get()
@@ -89,6 +208,17 @@ export class CurrencyController {
     }
 
     // Company Rate Endpoints
+    @Get('company-rates')
+    @ApiOperation({ summary: 'Get all company rates with company details' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Company rates retrieved successfully',
+        type: BaseApiResponse<CompanyCurrencyRateEntity[]>
+    })
+    async getAllCompanyRates(): Promise<BaseApiResponse<CompanyCurrencyRateEntity[]>> {
+        return await this.currencyService.getAllCompanyRates();
+    }
+
     @Post('company-rates')
     @ApiOperation({ summary: 'Create a new company currency rate' })
     @ApiResponse({ 
@@ -100,6 +230,103 @@ export class CurrencyController {
         @Body() createDto: CreateCompanyRateDto
     ): Promise<BaseApiResponse<CompanyCurrencyRateEntity>> {
         return await this.currencyService.createCompanyRate(createDto);
+    }
+
+    @Put('company-rates/:id')
+    @ApiOperation({ summary: 'Update company currency rate' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Company rate updated successfully',
+        type: BaseApiResponse<CompanyCurrencyRateEntity>
+    })
+    @ApiResponse({
+        status: 404,
+        description: 'Company rate, company, or currency group not found',
+        schema: {
+            example: {
+                success: false,
+                data: null,
+                message: "Company not found"
+            }
+        }
+    })
+    @ApiResponse({
+        status: 409,
+        description: 'Rate already exists for this company and group',
+        schema: {
+            example: {
+                success: false,
+                data: null,
+                message: "Rate already exists for this company and group"
+            }
+        }
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Bad request - validation failed',
+        schema: {
+            example: {
+                success: false,
+                data: null,
+                message: "Failed to update company rate: validation error"
+            }
+        }
+    })
+    @ApiParam({ name: 'id', description: 'Company rate ID' })
+    async updateCompanyRate(
+        @Param('id') rateId: number,
+        @Body() updateDto: UpdateCompanyRateDto
+    ): Promise<BaseApiResponse<CompanyCurrencyRateEntity>> {
+        const result = await this.currencyService.updateCompanyRate(rateId, updateDto);
+        
+        // If the service returns an error, throw an HTTP exception with proper status code
+        if (!result.success) {
+            if (result.message.includes('not found')) {
+                throw new HttpException(result, HttpStatus.NOT_FOUND);
+            } else if (result.message.includes('already exists') || result.message.includes('Conflict')) {
+                throw new HttpException(result, HttpStatus.CONFLICT);
+            } else {
+                throw new HttpException(result, HttpStatus.BAD_REQUEST);
+            }
+        }
+        
+        return result;
+    }
+
+    @Delete('company-rates/:id')
+    @ApiOperation({ summary: 'Delete company currency rate' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Company rate deleted successfully',
+        type: BaseApiResponse<null>
+    })
+    @ApiResponse({
+        status: 404,
+        description: 'Company rate not found',
+        schema: {
+            example: {
+                success: false,
+                data: null,
+                message: "Company rate not found"
+            }
+        }
+    })
+    @ApiParam({ name: 'id', description: 'Company rate ID' })
+    async deleteCompanyRate(
+        @Param('id') rateId: number
+    ): Promise<BaseApiResponse<null>> {
+        const result = await this.currencyService.deleteCompanyRate(rateId);
+        
+        // If the service returns an error, throw an HTTP exception with proper status code
+        if (!result.success) {
+            if (result.message.includes('not found')) {
+                throw new HttpException(result, HttpStatus.NOT_FOUND);
+            } else {
+                throw new HttpException(result, HttpStatus.BAD_REQUEST);
+            }
+        }
+        
+        return result;
     }
 
     @Get('company-rates/:companyId')
@@ -210,5 +437,90 @@ export class CurrencyController {
                 message: `Failed to seed data: ${error.message}`
             };
         }
+    }
+
+    // Currency Group Assignment Endpoints
+    @Post(':id/assign-group')
+    @ApiOperation({ summary: 'Assign currency to a group' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Currency assigned to group successfully',
+        type: BaseApiResponse<CurrencyEntity>
+    })
+    @ApiParam({ name: 'id', description: 'Currency ID' })
+    async assignCurrencyToGroup(
+        @Param('id') currencyId: number,
+        @Body() assignDto: AssignCurrencyGroupDto
+    ): Promise<BaseApiResponse<CurrencyEntity>> {
+        return await this.currencyService.assignCurrencyToGroup(currencyId, assignDto);
+    }
+
+    @Delete(':id/remove-group')
+    @ApiOperation({ summary: 'Remove currency from group' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Currency removed from group successfully',
+        type: BaseApiResponse<CurrencyEntity>
+    })
+    @ApiParam({ name: 'id', description: 'Currency ID' })
+    async removeCurrencyFromGroup(
+        @Param('id') currencyId: number
+    ): Promise<BaseApiResponse<CurrencyEntity>> {
+        return await this.currencyService.removeCurrencyFromGroup(currencyId);
+    }
+
+    @Get('groups/:id/currencies')
+    @ApiOperation({ summary: 'Get currencies by group ID' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Currencies retrieved successfully',
+        type: BaseApiResponse<CurrencyEntity[]>
+    })
+    @ApiParam({ name: 'id', description: 'Currency group ID' })
+    async getCurrenciesByGroupId(
+        @Param('id') groupId: number
+    ): Promise<BaseApiResponse<CurrencyEntity[]>> {
+        return await this.currencyService.getCurrenciesByGroup(groupId);
+    }
+
+    // Company Rate Endpoints by Group
+    @Get('company-rates/group/:groupId')
+    @ApiOperation({ summary: 'Get company rates by group ID' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Company rates retrieved successfully',
+        type: BaseApiResponse<CompanyCurrencyRateEntity[]>
+    })
+    @ApiParam({ name: 'groupId', description: 'Currency group ID' })
+    async getCompanyRatesByGroup(
+        @Param('groupId') groupId: number
+    ): Promise<BaseApiResponse<CompanyCurrencyRateEntity[]>> {
+        return await this.currencyService.getCompanyRatesByGroup(groupId);
+    }
+
+    // Bulk Company Rate Endpoints
+    @Post('company-rates/bulk')
+    @ApiOperation({ summary: 'Create bulk company rates' })
+    @ApiResponse({ 
+        status: 201, 
+        description: 'Bulk company rates created successfully',
+        type: BaseApiResponse<CompanyCurrencyRateEntity[]>
+    })
+    async createBulkCompanyRates(
+        @Body() bulkDto: BulkCompanyRateDto
+    ): Promise<BaseApiResponse<CompanyCurrencyRateEntity[]>> {
+        return await this.currencyService.createBulkCompanyRates(bulkDto);
+    }
+
+    // Rate Template Endpoints
+    @Get('company-rates/templates')
+    @ApiOperation({ summary: 'Get rate templates' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Rate templates retrieved successfully',
+        type: BaseApiResponse<any[]>
+    })
+    async getRateTemplates(): Promise<BaseApiResponse<any[]>> {
+        return await this.currencyService.getRateTemplates();
     }
 }

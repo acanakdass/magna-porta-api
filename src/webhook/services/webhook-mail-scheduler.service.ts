@@ -33,7 +33,7 @@ export class WebhookMailSchedulerService {
   /**
    * Her dakika çalışır ve mail gönderilmemiş webhook'ları kontrol eder
    */
-  //@Cron(CronExpression.EVERY_10_SECONDS)
+  //@Cron(CronExpression.EVERY_MINUTE)
   async processUnsentWebhooks() {
     try {
       this.logger.log('Webhook mail kontrolü başlatıldı...');
@@ -64,33 +64,54 @@ export class WebhookMailSchedulerService {
    */
   private async sendWebhookNotification(webhook: any): Promise<void> {
     try {
+      // Önce template'i kontrol et - isActive ve autoSendMail kontrolü
+      const template = await this.webhookTemplateService.findOne(webhook.webhookName, 'email', 'en');
+      if (!template) {
+        this.logger.log(`Webhook ${webhook.webhookName} için template bulunamadı, mail gönderilmeyecek`);
+        await this.webhookService.markMailAsSent(webhook.id);
+        return;
+      }
+      
+      if (!template.isActive) {
+        this.logger.log(`Webhook ${webhook.webhookName} için template isActive=false, mail gönderilmeyecek`);
+        await this.webhookService.markMailAsSent(webhook.id);
+        return;
+      }
+      
+      if (!template.autoSendMail) {
+        this.logger.log(`Webhook ${webhook.webhookName} için autoSendMail=false, mail gönderilmeyecek`);
+        await this.webhookService.markMailAsSent(webhook.id);
+        return;
+      }
+      
+      this.logger.log(`Webhook ${webhook.webhookName} için template aktif ve otomatik mail açık, mail gönderilecek`);
+
       let subject = this.generateWebhookSubject(webhook.webhookName);
       
-              // Account ID ile company bul
-        const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
-        //console.log(company);
-        if (company) {
-          this.logger.log(`Company bulundu: ${company.name} (ID: ${company.id})`);
-          this.logger.log(`Company users count: ${company.users?.length || 0}`);
-          if (company.users && company.users.length > 0) {
-            this.logger.log(`Users: ${company.users.map(u => `${u.email} (${u.isActive ? 'active' : 'inactive'})`).join(', ')}`);
-          }
+      // Account ID ile company bul
+      const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
+      if (company) {
+        this.logger.log(`Company bulundu: ${company.name} (ID: ${company.id})`);
+        this.logger.log(`Company users count: ${company.users?.length || 0}`);
+        if (company.users && company.users.length > 0) {
+          this.logger.log(`Users: ${company.users.map(u => `${u.email} (${u.isActive ? 'active' : 'inactive'})`).join(', ')}`);
         }
-        
-        subject = this.generateWebhookSubject(webhook.webhookName);
-        let htmlContent: string;
-        try {
-          const rendered = await this.webhookTemplateService.renderTemplateByEvent(
-            webhook.webhookName,
-            'email',
-            'en',
-            webhook.dataJson,
-          );
-          subject = rendered.subject || subject;
-          htmlContent = rendered.html;
-        } catch {
-          htmlContent = this.generateWebhookEmailContent(webhook, company);
-        }
+      }
+      
+      subject = this.generateWebhookSubject(webhook.webhookName);
+      let htmlContent: string;
+      try {
+        const rendered = await this.webhookTemplateService.renderTemplateByEvent(
+          webhook.webhookName,
+          'email',
+          'en',
+          webhook.dataJson,
+        );
+        subject = rendered.subject || subject;
+        htmlContent = rendered.html;
+      } catch {
+        htmlContent = this.generateWebhookEmailContent(webhook, company);
+      }
       
       if (!company) {
         this.logger.warn(`Company bulunamadı: ${webhook.accountId}`);

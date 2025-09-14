@@ -64,6 +64,11 @@ export class UpsertTemplateDto {
   @IsOptional()
   isActive?: boolean;
 
+  @ApiPropertyOptional({ example: false, default: false, description: 'Automatically send email when webhook is received' })
+  @IsBoolean()
+  @IsOptional()
+  autoSendMail?: boolean;
+
   @ApiPropertyOptional({ type: [TemplateTableRowDto] })
   @IsArray()
   @ValidateNested({ each: true })
@@ -122,6 +127,11 @@ export class UpdateTemplateDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ example: false, default: false, description: 'Automatically send email when webhook is received' })
+  @IsBoolean()
+  @IsOptional()
+  autoSendMail?: boolean;
 
   @ApiPropertyOptional({ type: [TemplateTableRowDto] })
   @IsArray()

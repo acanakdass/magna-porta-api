@@ -8,4 +8,6 @@ export class BaseApiResponse<T = any> {
     data?: T;
     @ApiProperty({ description: 'Response message', example: 'Operation succeeded' })
     message?: string;
+    @ApiProperty({ description: 'Indicates if the request is currently loading', required: false })
+    loading?: boolean;
 }

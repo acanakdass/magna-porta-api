@@ -20,6 +20,9 @@ async function bootstrap() {
     origin: [
       'https://app.magna-porta.com',
       'https://app.magna-porta.com/',
+      'https://backoffice.magna-porta.com',
+      'https://209.38.223.41',
+      'http://209.38.223.41:3004',
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3002'

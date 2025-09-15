@@ -289,6 +289,9 @@ export class WebhookService {
         );
         subject = rendered.subject || subject;
         htmlContent = rendered.html;
+        
+        // Override kontrolü - webhook'ta override varsa kullan, yoksa template'den al
+        htmlContent = this.applySubtextOverrides(htmlContent, webhook.overriddenSubtext1, webhook.overriddenSubtext2);
       } catch (error) {
         // Fallback content
         htmlContent = this.generateWebhookEmailContent(webhook, company);
@@ -378,6 +381,9 @@ export class WebhookService {
         );
         subject = rendered.subject || subject;
         htmlContent = rendered.html;
+        
+        // Override kontrolü - webhook'ta override varsa kullan, yoksa template'den al
+        htmlContent = this.applySubtextOverrides(htmlContent, webhook.overriddenSubtext1, webhook.overriddenSubtext2);
       } catch (error) {
         // Fallback content
         htmlContent = this.generateWebhookEmailContent(webhook, company);
@@ -428,5 +434,77 @@ export class WebhookService {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * HTML içeriğinde subtext1 ve subtext2'yi override eder
+   * Override null/undefined/boş ise template'deki değerleri kullanır
+   */
+  private applySubtextOverrides(htmlContent: string, overriddenSubtext1?: string, overriddenSubtext2?: string): string {
+    let modifiedContent = htmlContent;
+
+    // Subtext1 override - Template'de style="opacity:.9;margin-top:8px;" ile render ediliyor
+    if (overriddenSubtext1 && overriddenSubtext1.trim() !== '') {
+      modifiedContent = modifiedContent.replace(
+        /<p[^>]*style="[^"]*opacity:\.9[^"]*"[^>]*>.*?<\/p>/gi,
+        `<p style="opacity:.9;margin-top:8px;">${overriddenSubtext1}</p>`
+      );
+    }
+
+    // Subtext2 override - Template'de style="opacity:.8;margin-top:4px;" ile render ediliyor
+    if (overriddenSubtext2 && overriddenSubtext2.trim() !== '') {
+      modifiedContent = modifiedContent.replace(
+        /<p[^>]*style="[^"]*opacity:\.8[^"]*"[^>]*>.*?<\/p>/gi,
+        `<p style="opacity:.8;margin-top:4px;">${overriddenSubtext2}</p>`
+      );
+    }
+
+    return modifiedContent;
+  }
+
+  /**
+   * Webhook'un subtext override'larını günceller
+   */
+  async updateWebhookOverrides(
+    webhookId: number, 
+    overriddenSubtext1?: string, 
+    overriddenSubtext2?: string
+  ): Promise<BaseApiResponse<Webhook>> {
+    try {
+      const webhook = await this.webhookRepository.findOne({
+        where: { id: webhookId }
+      });
+
+      if (!webhook) {
+        return {
+          success: false,
+          data: null,
+          message: 'Webhook not found',
+          loading: false
+        };
+      }
+
+      // Override'ları güncelle
+      webhook.overriddenSubtext1 = overriddenSubtext1;
+      webhook.overriddenSubtext2 = overriddenSubtext2;
+
+      const updatedWebhook = await this.webhookRepository.save(webhook);
+
+      return {
+        success: true,
+        data: updatedWebhook,
+        message: 'Webhook overrides updated successfully',
+        loading: false
+      };
+
+    } catch (error) {
+      console.error('Error in updateWebhookOverrides:', error);
+      return {
+        success: false,
+        data: null,
+        message: `Failed to update webhook overrides: ${error.message}`,
+        loading: false
+      };
+    }
   }
 }

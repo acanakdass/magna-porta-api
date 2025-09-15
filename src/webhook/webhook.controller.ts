@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards, ParseIntPipe, Query, Put } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { Webhook } from '../entities/webhook.entity';
@@ -271,5 +271,41 @@ export class WebhookController {
     @Param('id', ParseIntPipe) id: number
   ): Promise<BaseApiResponse<{ subject: string; html: string; company: any; recipients: string[] }>> {
     return await this.webhookService.previewWebhookEmail(id);
+  }
+
+  @Put(':id/overrides')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update webhook subtext overrides' })
+  @ApiBody({ 
+    schema: { 
+      properties: { 
+        overriddenSubtext1: { type: 'string', nullable: true },
+        overriddenSubtext2: { type: 'string', nullable: true }
+      } 
+    } 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Webhook overrides updated successfully',
+    type: BaseApiResponse<Webhook>
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Webhook not found',
+    schema: {
+      example: {
+        success: false,
+        data: null,
+        message: "Webhook not found"
+      }
+    }
+  })
+  @ApiParam({ name: 'id', description: 'Webhook ID' })
+  async updateOverrides(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { overriddenSubtext1?: string; overriddenSubtext2?: string }
+  ): Promise<BaseApiResponse<Webhook>> {
+    return await this.webhookService.updateWebhookOverrides(id, body.overriddenSubtext1, body.overriddenSubtext2);
   }
 }

@@ -26,4 +26,10 @@ export class Webhook extends BaseEntity {
 
   @Column({ name: 'is_mail_sent', type: 'boolean', default: false })
   isMailSent: boolean;
+
+  @Column({ name: 'overridden_subtext1', type: 'varchar', length: 500, nullable: true })
+  overriddenSubtext1?: string;
+
+  @Column({ name: 'overridden_subtext2', type: 'varchar', length: 500, nullable: true })
+  overriddenSubtext2?: string;
 }

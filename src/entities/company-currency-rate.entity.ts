@@ -27,8 +27,8 @@ export class CompanyCurrencyRateEntity extends BaseEntity {
     groupId: number;
 
     @ApiProperty({
-        description: 'Conversion rate for this company and group',
-        example: 0.75,
+        description: 'Conversion rate for this company and group (calculated: awRate + mpRate)',
+        example: 2.90,
         minimum: 0
     })
     @Column('decimal', { precision: 10, scale: 4 })
@@ -38,18 +38,26 @@ export class CompanyCurrencyRateEntity extends BaseEntity {
     conversionRate: number;
 
     @ApiProperty({
-        description: 'Additional fee percentage',
-        example: 2.5,
-        required: false,
-        minimum: 0,
-        maximum: 100
+        description: 'Airwallex rate (default 2%)',
+        example: 2.0,
+        minimum: 0
     })
-    @Column('decimal', { precision: 5, scale: 2, nullable: true, default: 0 })
-    @IsOptional()
+    @Column('decimal', { precision: 5, scale: 2, default: 2, nullable: true })
     @IsNumber()
+    @IsOptional()
     @Min(0)
-    @Max(100)
-    feePercentage?: number;
+    awRate?: number;
+
+    @ApiProperty({
+        description: 'Magna Porta rate (editable)',
+        example: 0.90,
+        minimum: 0
+    })
+    @Column('decimal', { precision: 10, scale: 4, default: 0, nullable: true })
+    @IsNumber()
+    @IsOptional()
+    @Min(0)
+    mpRate?: number;
 
     @ApiProperty({
         description: 'Whether this rate is active',

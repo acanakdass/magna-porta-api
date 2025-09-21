@@ -66,6 +66,54 @@ export class WebhookService {
     };
   }
 
+  async findAllPaginatedWithCompanies(query: PaginationDto & { webhookName?: string; accountId?: string }): Promise<PaginatedResponseDto<any>> {
+    const page = Number(query.page) || 1;
+    const limit = Math.min(Number(query.limit) || 10, 100);
+    const skip = (page - 1) * limit;
+    const orderBy = query.orderBy || 'receivedAt';
+    const order = (query.order as any) || 'DESC';
+
+    // Webhook'ları getir
+    const qb = this.webhookRepository.createQueryBuilder('wh')
+      .orderBy(`wh.${orderBy}`, order)
+      .skip(skip)
+      .take(limit);
+
+    if (query.webhookName) qb.andWhere('wh.webhookName = :webhookName', { webhookName: query.webhookName });
+    if (query.accountId) qb.andWhere('wh.accountId = :accountId', { accountId: query.accountId });
+
+    const [rows, total] = await qb.getManyAndCount();
+
+    // Her webhook için company bilgisini al
+    const webhooksWithCompanies = await Promise.all(
+      rows.map(async (webhook) => {
+        const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
+        return {
+          ...webhook,
+          company: company ? {
+            id: company.id,
+            name: company.name,
+            airwallex_account_id: company.airwallex_account_id,
+            isVerified: company.isVerified,
+            isActive: company.isActive,
+            createdAt: company.createdAt,
+            updatedAt: company.updatedAt
+          } : null
+        };
+      })
+    );
+
+    return {
+      data: webhooksWithCompanies,
+      meta: {
+        totalItems: total,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
+  }
+
   async findById(id: number): Promise<Webhook> {
     return await this.webhookRepository.findOne({ where: { id } });
   }

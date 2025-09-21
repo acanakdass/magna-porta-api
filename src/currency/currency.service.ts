@@ -268,7 +268,7 @@ export class CurrencyService {
     }
 
     // Utility method to get conversion rate for specific currencies
-    async getConversionRate(companyId: number, fromCurrency: string, toCurrency: string): Promise<BaseApiResponse<{ rate: number; feePercentage: number }>> {
+    async getConversionRate(companyId: number, fromCurrency: string, toCurrency: string): Promise<BaseApiResponse<{ rate: number; awRate: number; mpRate: number }>> {
         try {
             // Find currencies and their groups
             const fromCurrencyEntity = await this.currencyRepository.findOne({
@@ -297,7 +297,8 @@ export class CurrencyService {
                     success: true,
                     data: {
                         rate: groupRate.conversionRate,
-                        feePercentage: groupRate.feePercentage || 0
+                        awRate: groupRate.awRate || 2,
+                        mpRate: groupRate.mpRate
                     },
                     message: 'Conversion rate retrieved successfully',
                     loading: false
@@ -326,7 +327,8 @@ export class CurrencyService {
                 success: true,
                 data: {
                     rate: selectedRate.conversionRate,
-                    feePercentage: selectedRate.feePercentage || 0
+                    awRate: selectedRate.awRate || 2,
+                    mpRate: selectedRate.mpRate
                 },
                 message: `Cross-group conversion: Using rate from group ${selectedRate.groupId} (higher rate)`,
                 loading: false
@@ -349,7 +351,8 @@ export class CurrencyService {
         toCurrency: string
     ): Promise<BaseApiResponse<{ 
         rate: number; 
-        feePercentage: number; 
+        awRate: number; 
+        mpRate: number; 
         companyId: number; 
         companyName: string;
         groupName: string;
@@ -398,7 +401,8 @@ export class CurrencyService {
                     success: true,
                     data: {
                         rate: groupRate.conversionRate,
-                        feePercentage: groupRate.feePercentage || 0,
+                        awRate: groupRate.awRate || 2,
+                        mpRate: groupRate.mpRate,
                         companyId: company.id,
                         companyName: company.name,
                         groupName: currencyGroup?.name || 'Unknown Group',
@@ -437,7 +441,8 @@ export class CurrencyService {
                 success: true,
                 data: {
                     rate: selectedRate.conversionRate,
-                    feePercentage: selectedRate.feePercentage || 0,
+                    awRate: selectedRate.awRate || 2,
+                    mpRate: selectedRate.mpRate,
                     companyId: company.id,
                     companyName: company.name,
                     groupName: selectedCurrencyGroup?.name || 'Unknown Group',
@@ -591,11 +596,17 @@ export class CurrencyService {
                 throw new ConflictException('Rate already exists for this company and group');
             }
 
+            // Calculate conversion rate: awRate + mpRate
+            const awRate = updateDto.awRate !== undefined ? updateDto.awRate : (existingRate.awRate || 2);
+            const mpRate = updateDto.mpRate !== undefined ? updateDto.mpRate : (existingRate.mpRate || 0);
+            const conversionRate = awRate + mpRate;
+
             // Update rate
             existingRate.companyId = updateDto.companyId;
             existingRate.groupId = updateDto.groupId;
-            existingRate.conversionRate = updateDto.conversionRate;
-            existingRate.feePercentage = updateDto.feePercentage || 0;
+            existingRate.conversionRate = conversionRate;
+            existingRate.awRate = awRate;
+            existingRate.mpRate = updateDto.mpRate;
             existingRate.isActive = updateDto.isActive !== undefined ? updateDto.isActive : existingRate.isActive;
             existingRate.notes = updateDto.notes;
 
@@ -912,17 +923,34 @@ export class CurrencyService {
                 });
 
                 if (existingRate) {
+                    // Calculate conversion rate: awRate + mpRate
+                    const awRate = rateData.awRate !== undefined ? rateData.awRate : (existingRate.awRate || 2);
+                    const mpRate = rateData.mpRate !== undefined ? rateData.mpRate : (existingRate.mpRate || 0);
+                    const conversionRate = awRate + mpRate;
+
                     // Update existing rate
-                    existingRate.conversionRate = rateData.conversionRate;
-                    existingRate.feePercentage = rateData.feePercentage || 0;
+                    existingRate.conversionRate = conversionRate;
+                    existingRate.awRate = awRate;
+                    existingRate.mpRate = rateData.mpRate;
                     existingRate.notes = rateData.notes;
                     existingRate.isActive = true;
                     
                     const updatedRate = await this.companyRateRepository.save(existingRate);
                     createdRates.push(updatedRate);
                 } else {
+                    // Calculate conversion rate: awRate + mpRate
+                    const awRate = rateData.awRate !== undefined ? rateData.awRate : 2;
+                    const mpRate = rateData.mpRate !== undefined ? rateData.mpRate : 0;
+                    const conversionRate = awRate + mpRate;
+
                     // Create new rate
-                    const rate = this.companyRateRepository.create(rateData);
+                    const rate = this.companyRateRepository.create({
+                        ...rateData,
+                        conversionRate,
+                        awRate,
+                        mpRate: rateData.mpRate,
+                        isActive: true
+                    });
                     const savedRate = await this.companyRateRepository.save(rate);
                     createdRates.push(savedRate);
                 }

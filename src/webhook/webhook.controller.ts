@@ -43,10 +43,10 @@ export class WebhookController {
   @Get('paginated')
   //@UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Webhook listesi (paginated)' })
+  @ApiOperation({ summary: 'Webhook listesi (paginated) with company details' })
   @ApiResponse({ status: 200, description: 'Webhook listesi başarıyla getirildi' })
-  async findAllOnlyPaginated(@Query() query: PaginationDto & { webhookName?: string; accountId?: string }): Promise<BaseApiResponse<PaginatedResponseDto<Webhook>>> {
-    const data = await this.webhookService.findAllPaginated(query);
+  async findAllOnlyPaginated(@Query() query: PaginationDto & { webhookName?: string; accountId?: string }): Promise<BaseApiResponse<PaginatedResponseDto<any>>> {
+    const data = await this.webhookService.findAllPaginatedWithCompanies(query);
     return { success: true, message: 'Webhooks fetched', data };
   }
 
@@ -193,6 +193,77 @@ export class WebhookController {
     const random = candidates[Math.floor(Math.random() * candidates.length)];
     const rendered = await this.webhookTemplateService.renderTemplateByEvent(tpl.eventType.eventName, tpl.channel as any, tpl.locale, random.dataJson);
     return { success: true, message: 'Preview generated', data: rendered };
+  }
+
+  @Get('template/:templateId/sample-data')
+  //@UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get sample webhook data for a template by templateId' })
+  @ApiParam({ name: 'templateId', description: 'Template ID to get sample data for' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Sample webhook data retrieved successfully',
+    type: BaseApiResponse<{ dataJson: string }>
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Template not found or no webhook data available',
+    schema: {
+      example: {
+        success: false,
+        data: null,
+        message: "Template not found"
+      }
+    }
+  })
+  async getTemplateSampleData(
+    @Param('templateId', ParseIntPipe) templateId: number
+  ): Promise<BaseApiResponse<{ dataJson: string }>> {
+    try {
+      const template = await this.webhookTemplateService.findById(templateId);
+      
+      if (!template) {
+        return {
+          success: false,
+          data: null,
+          message: 'Template not found',
+          loading: false
+        };
+      }
+
+      // Bu template'in event type'ına ait webhook'ları bul
+      const webhooks = await this.webhookService.findByWebhookName(template.eventType.eventName);
+      
+      if (!webhooks || webhooks.length === 0) {
+        return {
+          success: false,
+          data: null,
+          message: `No webhook data found for event type: ${template.eventType.eventName}`,
+          loading: false
+        };
+      }
+
+      // İlk webhook'u örnek olarak al
+      const sampleWebhook = webhooks[0];
+
+      return {
+        success: true,
+        data: {
+          dataJson: JSON.stringify(sampleWebhook.dataJson)
+        },
+        message: 'Sample webhook data retrieved successfully',
+        loading: false
+      };
+
+    } catch (error) {
+      console.error('Error in getTemplateSampleData:', error);
+      return {
+        success: false,
+        data: null,
+        message: `Failed to get sample data: ${error.message}`,
+        loading: false
+      };
+    }
   }
 
   @Post(':id/send-email')

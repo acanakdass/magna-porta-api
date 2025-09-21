@@ -132,8 +132,9 @@ export class CurrencySeedService {
         await this.createCompanyRate({
             companyId: companyId1,
             groupId: 1, // Major Currencies
-            conversionRate: 0.5,
-            feePercentage: 1.5,
+            conversionRate: 2.5, // awRate(2) + mpRate(0.5)
+            awRate: 2.0,
+            mpRate: 0.5,
             isActive: true,
             notes: 'Premium rate for Company A'
         });
@@ -141,8 +142,9 @@ export class CurrencySeedService {
         await this.createCompanyRate({
             companyId: companyId1,
             groupId: 2, // Emerging Markets
-            conversionRate: 0.6,
-            feePercentage: 2.0,
+            conversionRate: 3.0, // awRate(2) + mpRate(1.0)
+            awRate: 2.0,
+            mpRate: 1.0,
             isActive: true,
             notes: 'Standard rate for Company A'
         });
@@ -151,8 +153,9 @@ export class CurrencySeedService {
         await this.createCompanyRate({
             companyId: companyId2,
             groupId: 1, // Major Currencies
-            conversionRate: 0.75,
-            feePercentage: 1.0,
+            conversionRate: 2.25, // awRate(2) + mpRate(0.25)
+            awRate: 2.0,
+            mpRate: 0.25,
             isActive: true,
             notes: 'Standard rate for Company B'
         });
@@ -160,8 +163,9 @@ export class CurrencySeedService {
         await this.createCompanyRate({
             companyId: companyId2,
             groupId: 2, // Emerging Markets
-            conversionRate: 0.8,
-            feePercentage: 1.5,
+            conversionRate: 2.75, // awRate(2) + mpRate(0.75)
+            awRate: 2.0,
+            mpRate: 0.75,
             isActive: true,
             notes: 'Premium rate for Company B'
         });

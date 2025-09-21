@@ -374,7 +374,7 @@ export class CurrencyController {
         @Param('companyId') companyId: number,
         @Query('from') fromCurrency: string,
         @Query('to') toCurrency: string
-    ): Promise<BaseApiResponse<{ rate: number; feePercentage: number }>> {
+    ): Promise<BaseApiResponse<{ rate: number; awRate: number; mpRate: number }>> {
         return await this.currencyService.getConversionRate(companyId, fromCurrency, toCurrency);
     }
 
@@ -386,7 +386,8 @@ export class CurrencyController {
         description: 'Conversion rate retrieved successfully',
         type: BaseApiResponse<{ 
             rate: number; 
-            feePercentage: number; 
+            awRate: number; 
+            mpRate: number; 
             companyId: number; 
             companyName: string;
             groupName: string;
@@ -403,7 +404,8 @@ export class CurrencyController {
         @Query('to') toCurrency: string
     ): Promise<BaseApiResponse<{ 
         rate: number; 
-        feePercentage: number; 
+        awRate: number; 
+        mpRate: number; 
         companyId: number; 
         companyName: string;
         groupName: string;

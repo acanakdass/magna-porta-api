@@ -19,27 +19,26 @@ export class UpdateCompanyRateDto {
     groupId: number;
 
     @ApiProperty({
-        description: 'Conversion rate',
-        example: 0.95,
-        minimum: 0
-    })
-    @IsNumber()
-    @IsNotEmpty()
-    @Min(0)
-    conversionRate: number;
-
-    @ApiProperty({
-        description: 'Fee percentage',
-        example: 0.00,
+        description: 'Airwallex rate (default 2%)',
+        example: 2.0,
         minimum: 0,
-        maximum: 100,
         required: false
     })
     @IsOptional()
     @IsNumber()
     @Min(0)
-    @Max(100)
-    feePercentage?: number;
+    awRate?: number;
+
+    @ApiProperty({
+        description: 'Magna Porta rate (editable)',
+        example: 0.90,
+        minimum: 0,
+        required: false
+    })
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    mpRate?: number;
 
     @ApiProperty({
         description: 'Whether this rate is active',

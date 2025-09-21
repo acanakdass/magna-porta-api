@@ -22,9 +22,9 @@ export class UsersService extends BaseService<UserEntity> {
     async listUsersPaginated(paginationDto: PaginationDto): Promise<PaginatedResponseDto<UserEntity>> {
         return await this.findAllWithPagination({
             ...paginationDto,
-            select: ['id', 'firstName', 'lastName', 'email','createdAt'],
+            select: ['id', 'firstName', 'lastName', 'email', 'isActive', 'isVerified', 'createdAt'],
             relations: ['role','company'],
-            where: {},
+            where: { isDeleted: false },
         });
     }
 
@@ -55,6 +55,18 @@ export class UsersService extends BaseService<UserEntity> {
     async findOne(id: number): Promise<UserEntity> {
         const user = await this.userRepository.findOne({
             where: {id, isActive: true},
+        });
+
+        if (!user) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
+
+        return user;
+    }
+
+    async findOneForAdmin(id: number): Promise<UserEntity> {
+        const user = await this.userRepository.findOne({
+            where: {id, isDeleted: false},
         });
 
         if (!user) {
@@ -127,6 +139,13 @@ export class UsersService extends BaseService<UserEntity> {
 
     async softRemove(id: number): Promise<UserEntity> {
         const user = await this.findOne(id);
+        user.isActive = false;
+        return this.userRepository.save(user);
+    }
+
+    async softRemoveForAdmin(id: number): Promise<UserEntity> {
+        const user = await this.findOneForAdmin(id);
+        user.isDeleted = true;
         user.isActive = false;
         return this.userRepository.save(user);
     }

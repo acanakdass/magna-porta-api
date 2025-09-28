@@ -14,10 +14,14 @@ import {
     UpdateCompanyRateDto,
     UpdateCurrencyDto
 } from './dtos';
+import { CreatePlanRateDto } from '../plan/dtos/create-plan-rate.dto';
+import { UpdatePlanRateDto } from '../plan/dtos/update-plan-rate.dto';
+import { BulkPlanRateDto } from '../plan/dtos/bulk-plan-rate.dto';
 import { 
     CurrencyEntity, 
     CurrencyGroupEntity, 
-    CompanyCurrencyRateEntity 
+    CompanyCurrencyRateEntity,
+    PlanCurrencyRateEntity 
 } from '../entities';
 
 @ApiTags('Currency Management')
@@ -524,5 +528,155 @@ export class CurrencyController {
     })
     async getRateTemplates(): Promise<BaseApiResponse<any[]>> {
         return await this.currencyService.getRateTemplates();
+    }
+
+    // Plan Rate Endpoints
+    @Get('plan-rates')
+    @ApiOperation({ summary: 'Get all plan rates with plan details' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Plan rates retrieved successfully',
+        type: BaseApiResponse<PlanCurrencyRateEntity[]>
+    })
+    async getAllPlanRates(): Promise<BaseApiResponse<PlanCurrencyRateEntity[]>> {
+        return await this.currencyService.getAllPlanRates();
+    }
+
+    @Post('plan-rates')
+    @ApiOperation({ summary: 'Create a new plan currency rate' })
+    @ApiResponse({ 
+        status: 201, 
+        description: 'Plan rate created successfully',
+        type: BaseApiResponse<PlanCurrencyRateEntity>
+    })
+    async createPlanRate(
+        @Body() createDto: CreatePlanRateDto
+    ): Promise<BaseApiResponse<PlanCurrencyRateEntity>> {
+        return await this.currencyService.createPlanRate(createDto);
+    }
+
+    @Put('plan-rates/:id')
+    @ApiOperation({ summary: 'Update plan currency rate' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Plan rate updated successfully',
+        type: BaseApiResponse<PlanCurrencyRateEntity>
+    })
+    @ApiParam({ name: 'id', description: 'Plan rate ID' })
+    async updatePlanRate(
+        @Param('id') rateId: number,
+        @Body() updateDto: UpdatePlanRateDto
+    ): Promise<BaseApiResponse<PlanCurrencyRateEntity>> {
+        return await this.currencyService.updatePlanRate(rateId, updateDto);
+    }
+
+    @Delete('plan-rates/:id')
+    @ApiOperation({ summary: 'Delete plan currency rate' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Plan rate deleted successfully',
+        type: BaseApiResponse<null>
+    })
+    @ApiParam({ name: 'id', description: 'Plan rate ID' })
+    async deletePlanRate(
+        @Param('id') rateId: number
+    ): Promise<BaseApiResponse<null>> {
+        return await this.currencyService.deletePlanRate(rateId);
+    }
+
+    @Get('plan-rates/:planId')
+    @ApiOperation({ summary: 'Get all rates for a specific plan' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Plan rates retrieved successfully',
+        type: BaseApiResponse<PlanCurrencyRateEntity[]>
+    })
+    @ApiParam({ name: 'planId', description: 'Plan ID' })
+    async getPlanRates(
+        @Param('planId') planId: number
+    ): Promise<BaseApiResponse<PlanCurrencyRateEntity[]>> {
+        return await this.currencyService.getPlanRates(planId);
+    }
+
+    @Get('plan-rates/:planId/group/:groupId')
+    @ApiOperation({ summary: 'Get plan rate for a specific group' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Plan rate retrieved successfully',
+        type: BaseApiResponse<PlanCurrencyRateEntity>
+    })
+    @ApiParam({ name: 'planId', description: 'Plan ID' })
+    @ApiParam({ name: 'groupId', description: 'Currency group ID' })
+    async getPlanRateForGroup(
+        @Param('planId') planId: number,
+        @Param('groupId') groupId: number
+    ): Promise<BaseApiResponse<PlanCurrencyRateEntity>> {
+        return await this.currencyService.getPlanRateForGroup(planId, groupId);
+    }
+
+    // Plan Conversion Rate Endpoints
+    @Get('plan-conversion-rate/airwallex/:airwallexAccountId')
+    @ApiOperation({ summary: 'Get conversion rate between two currencies for a plan by airwallex_account_id' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Conversion rate retrieved successfully',
+        type: BaseApiResponse<{ 
+            rate: number; 
+            awRate: number; 
+            mpRate: number; 
+            planId: number; 
+            planName: string;
+            groupName: string;
+            isCrossGroup: boolean;
+            selectedGroupId: number;
+        }>
+    })
+    @ApiParam({ name: 'airwallexAccountId', description: 'Airwallex Account ID' })
+    @ApiQuery({ name: 'from', description: 'Source currency code', example: 'EUR' })
+    @ApiQuery({ name: 'to', description: 'Target currency code', example: 'USD' })
+    async getPlanConversionRateByAirwallexAccount(
+        @Param('airwallexAccountId') airwallexAccountId: string,
+        @Query('from') fromCurrency: string,
+        @Query('to') toCurrency: string
+    ): Promise<BaseApiResponse<{ 
+        rate: number; 
+        awRate: number; 
+        mpRate: number; 
+        planId: number; 
+        planName: string;
+        groupName: string;
+        isCrossGroup: boolean;
+        selectedGroupId: number;
+    }>> {
+        return await this.currencyService.getPlanConversionRateByAirwallexAccount(airwallexAccountId, fromCurrency, toCurrency);
+    }
+
+    // Plan Rate Endpoints by Group
+    @Get('plan-rates/group/:groupId')
+    @ApiOperation({ summary: 'Get plan rates by group ID' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Plan rates retrieved successfully',
+        type: BaseApiResponse<PlanCurrencyRateEntity[]>
+    })
+    @ApiParam({ name: 'groupId', description: 'Currency group ID' })
+    async getPlanRatesByGroup(
+        @Param('groupId') groupId: number
+    ): Promise<BaseApiResponse<PlanCurrencyRateEntity[]>> {
+        return await this.currencyService.getPlanRatesByGroup(groupId);
+    }
+
+    // Bulk Plan Rate Endpoints
+    @Post('plan-rates/bulk')
+    @ApiOperation({ summary: 'Create bulk plan rates' })
+    @ApiResponse({ 
+        status: 201, 
+        description: 'Bulk plan rates created successfully',
+        type: BaseApiResponse<PlanCurrencyRateEntity[]>
+    })
+    async createBulkPlanRates(
+        @Body() bulkDto: BulkPlanRateDto
+    ): Promise<BaseApiResponse<PlanCurrencyRateEntity[]>> {
+        return await this.currencyService.createBulkPlanRates(bulkDto);
     }
 }

@@ -18,7 +18,11 @@ export class CompaniesController {
   @Get()
   @ApiOperation({ summary: 'Get all companies' })
   async findAll(@Query() paginationDto: PaginationDto): Promise<BaseApiResponse<PaginatedResponseDto<CompanyEntity>>> {
-    const result = await this.service.findAllWithPagination({...paginationDto});
+    const result = await this.service.findAllWithPagination({
+      ...paginationDto,
+      relations: ['users', 'plan'],
+      where: { isDeleted: false }
+    });
     return { success: true, message: 'Companies fetched successfully', data: result };
   }
   @Get('paginated')
@@ -30,7 +34,10 @@ export class CompaniesController {
 
   @Get(':id')
   async findOne(@Param('id') id: number) {
-    return this.service.findOneDynamic({ id });
+    return this.service.findOneDynamic({ 
+      id,
+      isDeleted: false
+    }, ['users', 'plan']);
   }
 
   @Post()
@@ -39,12 +46,33 @@ export class CompaniesController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: number, @Body() updateDto: UpdateCompanyDto) {
-    return this.service.update(id, updateDto);
+  @ApiOperation({ summary: 'Update company' })
+  async update(@Param('id') id: number, @Body() updateDto: UpdateCompanyDto): Promise<BaseApiResponse<CompanyEntity>> {
+    try {
+      const updatedCompany = await this.service.update(id, updateDto);
+      return {
+        success: true,
+        message: 'Company updated successfully',
+        data: updatedCompany
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to update company: ${error.message}`,
+        data: null
+      };
+    }
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Soft delete company' })
   async delete(@Param('id') id: number) {
-    return this.service.delete(id);
+    return this.service.softDeleteCompany(id);
+  }
+
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore deleted company' })
+  async restore(@Param('id') id: number) {
+    return this.service.restore(id);
   }
 }

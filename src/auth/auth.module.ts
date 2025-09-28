@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt.strategy';
+import { RefreshTokenService } from './refresh-token.service';
 import { UserEntity } from '../users/user.entity';
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import {RolesService} from "../role/roles.service";
@@ -31,7 +32,7 @@ import { ExternalModule } from 'src/external/external.module';
     CompaniesModule,
     ExternalModule
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, RefreshTokenService],
   controllers: [AuthController],
 })
 

@@ -86,4 +86,30 @@ export class AuthController {
       data: req.user,
     };
   }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Token refreshed successfully',
+    type: BaseApiResponse<LoginResponseDto>,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Invalid refresh token',
+  })
+  async refreshToken(@Body() body: { refresh_token: string }): Promise<BaseApiResponse<LoginResponseDto>> {
+    return this.authService.refreshToken(body.refresh_token);
+  }
+
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout user and revoke refresh token' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Logout successful',
+    type: BaseApiResponse,
+  })
+  async logout(@Body() body: { refresh_token: string }): Promise<BaseApiResponse<null>> {
+    return this.authService.logout(body.refresh_token);
+  }
 }

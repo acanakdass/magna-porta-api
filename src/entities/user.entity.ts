@@ -22,7 +22,3 @@ export class UserEntityOld extends BaseEntityOld {
     @Column({default: true})
     isActive: boolean;
 }
-
-
-
-

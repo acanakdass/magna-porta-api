@@ -21,8 +21,8 @@ export class CompaniesService extends BaseService<CompanyEntity> {
         return await this.findAllWithPagination({
             ...paginationDto,
             select: [],
-            relations: ['users'],
-            where: {},
+            relations: ['users', 'plan'],
+            where: { isDeleted: false },
         });
     }
 
@@ -52,7 +52,81 @@ export class CompaniesService extends BaseService<CompanyEntity> {
     async findByAirwallexAccountId(accountId: string): Promise<CompanyEntity | null> {
         return await this.repo.findOne({
             where: { airwallex_account_id: accountId },
-            relations: ['users'],
+            relations: ['users', 'plan'],
         });
+    }
+
+    async getCompanyWithPlan(id: number): Promise<CompanyEntity | null> {
+        return await this.repo.findOne({
+            where: { id },
+            relations: ['users', 'plan'],
+        });
+    }
+
+    async updateCompanyPlan(companyId: number, planId: number | null): Promise<BaseApiResponse<CompanyEntity>> {
+        const company = await this.repo.findOne({ where: { id: companyId } });
+        
+        if (!company) {
+            return {
+                success: false,
+                message: `Company with ID ${companyId} not found`,
+                data: null
+            } as BaseApiResponse<CompanyEntity>;
+        }
+
+        company.planId = planId;
+        const updatedCompany = await this.repo.save(company);
+
+        return {
+            success: true,
+            message: `Company plan updated successfully`,
+            data: updatedCompany
+        } as BaseApiResponse<CompanyEntity>;
+    }
+
+    // Soft delete method
+    async softDeleteCompany(id: number): Promise<BaseApiResponse<CompanyEntity>> {
+        const company = await this.repo.findOne({ where: { id, isDeleted: false } });
+        
+        if (!company) {
+            return {
+                success: false,
+                message: `Company with ID ${id} not found`,
+                data: null
+            } as BaseApiResponse<CompanyEntity>;
+        }
+
+        company.isDeleted = true;
+        company.updatedAt = new Date();
+        const deletedCompany = await this.repo.save(company);
+
+        return {
+            success: true,
+            message: `Company deleted successfully`,
+            data: deletedCompany
+        } as BaseApiResponse<CompanyEntity>;
+    }
+
+    // Restore deleted company
+    async restore(id: number): Promise<BaseApiResponse<CompanyEntity>> {
+        const company = await this.repo.findOne({ where: { id, isDeleted: true } });
+        
+        if (!company) {
+            return {
+                success: false,
+                message: `Deleted company with ID ${id} not found`,
+                data: null
+            } as BaseApiResponse<CompanyEntity>;
+        }
+
+        company.isDeleted = false;
+        company.updatedAt = new Date();
+        const restoredCompany = await this.repo.save(company);
+
+        return {
+            success: true,
+            message: `Company restored successfully`,
+            data: restoredCompany
+        } as BaseApiResponse<CompanyEntity>;
     }
 }

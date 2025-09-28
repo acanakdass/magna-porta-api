@@ -4,7 +4,9 @@ import { Repository, Not } from 'typeorm';
 import { CurrencyEntity } from '../entities/currency.entity';
 import { CurrencyGroupEntity } from '../entities/currency-group.entity';
 import { CompanyCurrencyRateEntity } from '../entities/company-currency-rate.entity';
+import { PlanCurrencyRateEntity } from '../entities/plan-currency-rate.entity';
 import { CompanyEntity } from '../company/company.entity';
+import { PlanEntity } from '../plan/plan.entity';
 import {
     CreateCurrencyDto,
     CreateCurrencyGroupDto,
@@ -16,6 +18,9 @@ import {
     UpdateCompanyRateDto,
     UpdateCurrencyDto
 } from './dtos';
+import { CreatePlanRateDto } from '../plan/dtos/create-plan-rate.dto';
+import { UpdatePlanRateDto } from '../plan/dtos/update-plan-rate.dto';
+import { BulkPlanRateDto } from '../plan/dtos/bulk-plan-rate.dto';
 import { BaseApiResponse } from '../common/dto/api-response-dto';
 
 @Injectable()
@@ -30,8 +35,14 @@ export class CurrencyService {
         @InjectRepository(CompanyCurrencyRateEntity)
         private companyRateRepository: Repository<CompanyCurrencyRateEntity>,
 
+        @InjectRepository(PlanCurrencyRateEntity)
+        private planRateRepository: Repository<PlanCurrencyRateEntity>,
+
         @InjectRepository(CompanyEntity)
-        private companyRepository: Repository<CompanyEntity>
+        private companyRepository: Repository<CompanyEntity>,
+
+        @InjectRepository(PlanEntity)
+        private planRepository: Repository<PlanEntity>
     ) {}
 
     // Currency Group Methods
@@ -932,7 +943,7 @@ export class CurrencyService {
                     existingRate.conversionRate = conversionRate;
                     existingRate.awRate = awRate;
                     existingRate.mpRate = rateData.mpRate;
-                    existingRate.notes = rateData.notes;
+                    // Notes not available in bulk operation
                     existingRate.isActive = true;
                     
                     const updatedRate = await this.companyRateRepository.save(existingRate);
@@ -1016,6 +1027,566 @@ export class CurrencyService {
                 success: false,
                 data: null,
                 message: `Failed to retrieve rate templates: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    // Plan Rate Methods
+    async getAllPlanRates(): Promise<BaseApiResponse<PlanCurrencyRateEntity[]>> {
+        try {
+            const rates = await this.planRateRepository.find({
+                where: { isActive: true },
+                relations: ['plan'],
+                order: { planId: 'ASC', groupId: 'ASC' }
+            });
+
+            return {
+                success: true,
+                data: rates,
+                message: 'Plan rates retrieved successfully',
+                loading: false
+            };
+        } catch (error) {
+            console.error('Error in getAllPlanRates:', error);
+            return {
+                success: false,
+                data: null,
+                message: `Failed to retrieve plan rates: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    async createPlanRate(createDto: CreatePlanRateDto): Promise<BaseApiResponse<PlanCurrencyRateEntity>> {
+        try {
+            // Check if plan exists
+            const plan = await this.planRepository.findOne({
+                where: { id: createDto.planId }
+            });
+
+            if (!plan) {
+                throw new NotFoundException('Plan not found');
+            }
+
+            // Check if group exists
+            const group = await this.currencyGroupRepository.findOne({
+                where: { id: createDto.groupId }
+            });
+
+            if (!group) {
+                throw new NotFoundException('Currency group not found');
+            }
+
+            // Check if rate already exists for this plan and group
+            const existingRate = await this.planRateRepository.findOne({
+                where: { planId: createDto.planId, groupId: createDto.groupId }
+            });
+
+            if (existingRate) {
+                throw new ConflictException('Rate already exists for this plan and group');
+            }
+
+            // Calculate conversion rate: awRate + mpRate
+            const awRate = createDto.awRate !== undefined ? createDto.awRate : 2;
+            const mpRate = createDto.mpRate !== undefined ? createDto.mpRate : 0;
+            const conversionRate = awRate + mpRate;
+
+            const rate = this.planRateRepository.create({
+                planId: createDto.planId,
+                groupId: createDto.groupId,
+                conversionRate,
+                awRate,
+                mpRate,
+                isActive: true,
+                notes: createDto.notes
+            });
+            const savedRate = await this.planRateRepository.save(rate);
+
+            return {
+                success: true,
+                data: savedRate,
+                message: 'Plan rate created successfully',
+                loading: false
+            };
+        } catch (error) {
+            return {
+                success: false,
+                data: null,
+                message: `Failed to create plan rate: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    async getPlanRates(planId: number): Promise<BaseApiResponse<PlanCurrencyRateEntity[]>> {
+        try {
+            const rates = await this.planRateRepository.find({
+                where: { planId, isActive: true },
+                relations: ['plan'],
+                order: { groupId: 'ASC' }
+            });
+
+            return {
+                success: true,
+                data: rates,
+                message: 'Plan rates retrieved successfully',
+                loading: false
+            };
+        } catch (error) {
+            console.error('Error in getPlanRates:', error);
+            return {
+                success: false,
+                data: null,
+                message: `Failed to retrieve plan rates: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    async getPlanRateForGroup(planId: number, groupId: number): Promise<BaseApiResponse<PlanCurrencyRateEntity>> {
+        try {
+            const rate = await this.planRateRepository.findOne({
+                where: { planId, groupId, isActive: true },
+                relations: ['plan']
+            });
+
+            if (!rate) {
+                throw new NotFoundException('Rate not found for this plan and group');
+            }
+
+            return {
+                success: true,
+                data: rate,
+                message: 'Plan rate retrieved successfully',
+                loading: false
+            };
+        } catch (error) {
+            console.error('Error in getPlanRateForGroup:', error);
+            return {
+                success: false,
+                data: null,
+                message: `Failed to retrieve plan rate: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    // Utility method to get conversion rate for specific currencies for a plan
+    async getPlanConversionRate(planId: number, fromCurrency: string, toCurrency: string): Promise<BaseApiResponse<{ rate: number; awRate: number; mpRate: number }>> {
+        try {
+            // Find currencies and their groups
+            const fromCurrencyEntity = await this.currencyRepository.findOne({
+                where: { code: fromCurrency, isActive: true }
+            });
+
+            const toCurrencyEntity = await this.currencyRepository.findOne({
+                where: { code: toCurrency, isActive: true }
+            });
+
+            if (!fromCurrencyEntity || !toCurrencyEntity) {
+                throw new NotFoundException('One or both currencies not found');
+            }
+
+            // If currencies are in the same group, get the group rate
+            if (fromCurrencyEntity.groupId === toCurrencyEntity.groupId) {
+                const groupRate = await this.planRateRepository.findOne({
+                    where: { planId, groupId: fromCurrencyEntity.groupId, isActive: true }
+                });
+
+                if (!groupRate) {
+                    throw new NotFoundException('No rate found for this currency group');
+                }
+
+                return {
+                    success: true,
+                    data: {
+                        rate: groupRate.conversionRate,
+                        awRate: groupRate.awRate || 2,
+                        mpRate: groupRate.mpRate
+                    },
+                    message: 'Conversion rate retrieved successfully',
+                    loading: false
+                };
+            }
+
+            // Cross-group conversion: Get rates for both groups and use the higher one
+            const fromGroupRate = await this.planRateRepository.findOne({
+                where: { planId, groupId: fromCurrencyEntity.groupId, isActive: true }
+            });
+
+            const toGroupRate = await this.planRateRepository.findOne({
+                where: { planId, groupId: toCurrencyEntity.groupId, isActive: true }
+            });
+
+            if (!fromGroupRate || !toGroupRate) {
+                throw new NotFoundException('No rate found for one or both currency groups');
+            }
+
+            // Use the higher conversion rate between the two groups
+            const selectedRate = fromGroupRate.conversionRate > toGroupRate.conversionRate 
+                ? fromGroupRate 
+                : toGroupRate;
+
+            return {
+                success: true,
+                data: {
+                    rate: selectedRate.conversionRate,
+                    awRate: selectedRate.awRate || 2,
+                    mpRate: selectedRate.mpRate
+                },
+                message: `Cross-group conversion: Using rate from group ${selectedRate.groupId} (higher rate)`,
+                loading: false
+            };
+        } catch (error) {
+            console.error('Error in getPlanConversionRate:', error);
+            return {
+                success: false,
+                data: null,
+                message: `Failed to get conversion rate: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    async updatePlanRate(rateId: number, updateDto: UpdatePlanRateDto): Promise<BaseApiResponse<PlanCurrencyRateEntity>> {
+        try {
+            // Check if rate exists
+            const existingRate = await this.planRateRepository.findOne({
+                where: { id: rateId }
+            });
+
+            if (!existingRate) {
+                throw new NotFoundException('Plan rate not found');
+            }
+
+            // Check if plan exists
+            const plan = await this.planRepository.findOne({
+                where: { id: updateDto.planId, isActive: true }
+            });
+
+            if (!plan) {
+                throw new NotFoundException('Plan not found');
+            }
+
+            // Check if group exists
+            const group = await this.currencyGroupRepository.findOne({
+                where: { id: updateDto.groupId, isActive: true }
+            });
+
+            if (!group) {
+                throw new NotFoundException('Currency group not found');
+            }
+
+            // Check if another rate already exists for this plan and group (excluding current rate)
+            const duplicateRate = await this.planRateRepository.findOne({
+                where: { 
+                    planId: updateDto.planId, 
+                    groupId: updateDto.groupId,
+                    id: Not(rateId)
+                }
+            });
+
+            if (duplicateRate) {
+                throw new ConflictException('Rate already exists for this plan and group');
+            }
+
+            // Calculate conversion rate: awRate + mpRate
+            const awRate = updateDto.awRate !== undefined ? updateDto.awRate : (existingRate.awRate || 2);
+            const mpRate = updateDto.mpRate !== undefined ? updateDto.mpRate : (existingRate.mpRate || 0);
+            const conversionRate = awRate + mpRate;
+
+            // Update rate
+            existingRate.planId = updateDto.planId;
+            existingRate.groupId = updateDto.groupId;
+            existingRate.conversionRate = conversionRate;
+            existingRate.awRate = awRate;
+            existingRate.mpRate = updateDto.mpRate;
+            existingRate.isActive = updateDto.isActive !== undefined ? updateDto.isActive : existingRate.isActive;
+            existingRate.notes = updateDto.notes;
+
+            const updatedRate = await this.planRateRepository.save(existingRate);
+
+            // Get updated rate with plan details
+            const finalRate = await this.planRateRepository.findOne({
+                where: { id: rateId },
+                relations: ['plan']
+            });
+
+            return {
+                success: true,
+                data: finalRate,
+                message: 'Plan rate updated successfully',
+                loading: false
+            };
+        } catch (error) {
+            console.error('Error in updatePlanRate:', error);
+            return {
+                success: false,
+                data: null,
+                message: `Failed to update plan rate: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    async deletePlanRate(rateId: number): Promise<BaseApiResponse<null>> {
+        try {
+            // Check if rate exists
+            const existingRate = await this.planRateRepository.findOne({
+                where: { id: rateId }
+            });
+
+            if (!existingRate) {
+                throw new NotFoundException('Plan rate not found');
+            }
+
+            // Delete the rate
+            await this.planRateRepository.remove(existingRate);
+
+            return {
+                success: true,
+                data: null,
+                message: 'Plan rate deleted successfully',
+                loading: false
+            };
+        } catch (error) {
+            console.error('Error in deletePlanRate:', error);
+            return {
+                success: false,
+                data: null,
+                message: `Failed to delete plan rate: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    // Plan Rate Methods by Group
+    async getPlanRatesByGroup(groupId: number): Promise<BaseApiResponse<PlanCurrencyRateEntity[]>> {
+        try {
+            const rates = await this.planRateRepository.find({
+                where: { groupId, isActive: true },
+                relations: ['plan'],
+                order: { planId: 'ASC' }
+            });
+
+            return {
+                success: true,
+                data: rates,
+                message: 'Plan rates retrieved successfully',
+                loading: false
+            };
+        } catch (error) {
+            console.error('Error in getPlanRatesByGroup:', error);
+            return {
+                success: false,
+                data: null,
+                message: `Failed to retrieve plan rates: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    // Bulk Plan Rate Methods
+    async createBulkPlanRates(bulkDto: BulkPlanRateDto): Promise<BaseApiResponse<PlanCurrencyRateEntity[]>> {
+        try {
+            const createdRates: PlanCurrencyRateEntity[] = [];
+
+            for (const rateData of bulkDto.rates) {
+                // Check if plan exists
+                const plan = await this.planRepository.findOne({
+                    where: { id: bulkDto.planId, isActive: true }
+                });
+
+                if (!plan) {
+                    throw new NotFoundException(`Plan with ID ${bulkDto.planId} not found`);
+                }
+
+                // Check if group exists
+                const group = await this.currencyGroupRepository.findOne({
+                    where: { id: rateData.groupId, isActive: true }
+                });
+
+                if (!group) {
+                    throw new NotFoundException(`Currency group with ID ${rateData.groupId} not found`);
+                }
+
+                // Check if rate already exists
+                const existingRate = await this.planRateRepository.findOne({
+                    where: { planId: bulkDto.planId, groupId: rateData.groupId }
+                });
+
+                if (existingRate) {
+                    // Calculate conversion rate: awRate + mpRate
+                    const awRate = rateData.awRate !== undefined ? rateData.awRate : (existingRate.awRate || 2);
+                    const mpRate = rateData.mpRate !== undefined ? rateData.mpRate : (existingRate.mpRate || 0);
+                    const conversionRate = awRate + mpRate;
+
+                    // Update existing rate
+                    existingRate.conversionRate = conversionRate;
+                    existingRate.awRate = awRate;
+                    existingRate.mpRate = rateData.mpRate;
+                    // Notes not available in bulk operation
+                    existingRate.isActive = true;
+                    
+                    const updatedRate = await this.planRateRepository.save(existingRate);
+                    createdRates.push(updatedRate);
+                } else {
+                    // Calculate conversion rate: awRate + mpRate
+                    const awRate = rateData.awRate !== undefined ? rateData.awRate : 2;
+                    const mpRate = rateData.mpRate !== undefined ? rateData.mpRate : 0;
+                    const conversionRate = awRate + mpRate;
+
+                    // Create new rate
+                    const rate = this.planRateRepository.create({
+                        planId: bulkDto.planId,
+                        groupId: rateData.groupId,
+                        conversionRate,
+                        awRate,
+                        mpRate: rateData.mpRate,
+                        isActive: true
+                    });
+                    const savedRate = await this.planRateRepository.save(rate);
+                    createdRates.push(savedRate);
+                }
+            }
+
+            return {
+                success: true,
+                data: createdRates,
+                message: `Bulk plan rates created/updated successfully (${createdRates.length} rates)`,
+                loading: false
+            };
+        } catch (error) {
+            console.error('Error in createBulkPlanRates:', error);
+            return {
+                success: false,
+                data: null,
+                message: `Failed to create bulk plan rates: ${error.message}`,
+                loading: false
+            };
+        }
+    }
+
+    // Get plan conversion rate by airwallex_account_id
+    async getPlanConversionRateByAirwallexAccount(
+        airwallexAccountId: string, 
+        fromCurrency: string, 
+        toCurrency: string
+    ): Promise<BaseApiResponse<{ 
+        rate: number; 
+        awRate: number; 
+        mpRate: number; 
+        planId: number; 
+        planName: string;
+        groupName: string;
+        isCrossGroup: boolean;
+        selectedGroupId: number;
+    }>> {
+        try {
+            // First, find the company by airwallex_account_id
+            const company = await this.companyRepository.findOne({
+                where: { airwallex_account_id: airwallexAccountId, isActive: true, isDeleted: false },
+                relations: ['plan']
+            });
+
+            if (!company) {
+                throw new NotFoundException(`Company with airwallex_account_id ${airwallexAccountId} not found`);
+            }
+
+            if (!company.planId) {
+                throw new NotFoundException(`Company ${company.name} does not have a plan assigned`);
+            }
+
+            // Find currencies and their groups
+            const fromCurrencyEntity = await this.currencyRepository.findOne({
+                where: { code: fromCurrency, isActive: true }
+            });
+
+            const toCurrencyEntity = await this.currencyRepository.findOne({
+                where: { code: toCurrency, isActive: true }
+            });
+
+            if (!fromCurrencyEntity || !toCurrencyEntity) {
+                throw new NotFoundException('One or both currencies not found');
+            }
+
+            // If currencies are in the same group, get the plan group rate
+            if (fromCurrencyEntity.groupId === toCurrencyEntity.groupId) {
+                const planGroupRate = await this.planRateRepository.findOne({
+                    where: { planId: company.planId, groupId: fromCurrencyEntity.groupId, isActive: true }
+                });
+
+                if (!planGroupRate) {
+                    throw new NotFoundException(`No plan rate found for plan ${company.plan?.name || company.planId} and currency group`);
+                }
+
+                // Get currency group name
+                const currencyGroup = await this.currencyGroupRepository.findOne({
+                    where: { id: fromCurrencyEntity.groupId }
+                });
+
+                return {
+                    success: true,
+                    data: {
+                        rate: planGroupRate.conversionRate,
+                        awRate: planGroupRate.awRate || 2,
+                        mpRate: planGroupRate.mpRate,
+                        planId: company.planId,
+                        planName: company.plan?.name || 'Unknown Plan',
+                        groupName: currencyGroup?.name || 'Unknown Group',
+                        isCrossGroup: false,
+                        selectedGroupId: fromCurrencyEntity.groupId
+                    },
+                    message: 'Plan conversion rate retrieved successfully (same group)',
+                    loading: false
+                };
+            }
+
+            // Cross-group conversion: Get plan rates for both groups and use the higher one
+            const fromGroupPlanRate = await this.planRateRepository.findOne({
+                where: { planId: company.planId, groupId: fromCurrencyEntity.groupId, isActive: true }
+            });
+
+            const toGroupPlanRate = await this.planRateRepository.findOne({
+                where: { planId: company.planId, groupId: toCurrencyEntity.groupId, isActive: true }
+            });
+
+            if (!fromGroupPlanRate || !toGroupPlanRate) {
+                throw new NotFoundException(`No plan rate found for plan ${company.plan?.name || company.planId} in one or both currency groups`);
+            }
+
+            // Use the higher conversion rate between the two groups
+            const selectedRate = fromGroupPlanRate.conversionRate > toGroupPlanRate.conversionRate 
+                ? fromGroupPlanRate 
+                : toGroupPlanRate;
+
+            // Get currency group name for selected rate
+            const selectedCurrencyGroup = await this.currencyGroupRepository.findOne({
+                where: { id: selectedRate.groupId }
+            });
+
+            return {
+                success: true,
+                data: {
+                    rate: selectedRate.conversionRate,
+                    awRate: selectedRate.awRate || 2,
+                    mpRate: selectedRate.mpRate,
+                    planId: company.planId,
+                    planName: company.plan?.name || 'Unknown Plan',
+                    groupName: selectedCurrencyGroup?.name || 'Unknown Group',
+                    isCrossGroup: true,
+                    selectedGroupId: selectedRate.groupId
+                },
+                message: `Cross-group plan conversion: Using rate from group ${selectedCurrencyGroup?.name || 'Unknown Group'} (higher rate: ${selectedRate.conversionRate})`,
+                loading: false
+            };
+        } catch (error) {
+            console.error('Error in getPlanConversionRateByAirwallexAccount:', error);
+            return {
+                success: false,
+                data: null,
+                message: `Failed to get plan conversion rate: ${error.message}`,
                 loading: false
             };
         }

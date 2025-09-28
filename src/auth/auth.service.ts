@@ -13,6 +13,7 @@ import {CompanyEntity} from "../company/company.entity";
 import {CreateCompanyDto} from "../company/dtos/create-company-dto";
 import { LoginResponseDto } from './dto/login-response.dto';
 import { ConflictException } from '@nestjs/common';
+import { RefreshTokenService } from './refresh-token.service';
 
 @Injectable()
 export class AuthService {
@@ -20,7 +21,8 @@ export class AuthService {
                 private jwtService: JwtService,
                 private rolesService: RolesService,
                 private awAccountService: AwAccountService,
-                private companyService: CompaniesService
+                private companyService: CompaniesService,
+                private refreshTokenService: RefreshTokenService
     ) {
     }
 
@@ -44,13 +46,17 @@ export class AuthService {
     async login(dto: LoginDto): Promise<BaseApiResponse<LoginResponseDto>> {
         const user = await this.validateUser(dto.email, dto.password);
         console.log('user', user);
-        // console.log('JWT Secret:', process.env.JWT_SECRET);
+        
         const payload = {email: user.email, sub: user.id};
+        const accessToken = this.jwtService.sign(payload);
+        const refreshToken = this.refreshTokenService.generateToken(payload);
+        
         return {
             message: "Login Success",
             success: true,
             data: {
-                access_token: this.jwtService.sign(payload)
+                access_token: accessToken,
+                refresh_token: refreshToken
             }
         };
     }
@@ -158,6 +164,61 @@ export class AuthService {
         } catch (userError) {
             console.error('Error creating user:', userError.message);
             throw userError;
+        }
+    }
+
+    async refreshToken(refreshToken: string): Promise<BaseApiResponse<LoginResponseDto>> {
+        try {
+            // Verify refresh token
+            const payload = await this.refreshTokenService.verifyToken(refreshToken);
+            
+            // Get user from payload
+            const user = await this.usersService.findOneDynamic(
+                { id: Number(payload.sub), isActive: true },
+                ['role', 'role.permissions']
+            );
+            
+            if (!user) {
+                throw new UnauthorizedException('User not found');
+            }
+            
+            // Generate new access token
+            const newPayload = { email: user.email, sub: user.id };
+            const newAccessToken = this.jwtService.sign(newPayload);
+            
+            // Generate new refresh token (optional - rotate refresh token)
+            const newRefreshToken = this.refreshTokenService.generateToken(newPayload);
+            
+            // Revoke old refresh token
+            await this.refreshTokenService.revokeToken(refreshToken);
+            
+            return {
+                message: "Token refreshed successfully",
+                success: true,
+                data: {
+                    access_token: newAccessToken,
+                    refresh_token: newRefreshToken
+                }
+            };
+        } catch (error) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+    }
+
+    async logout(refreshToken: string): Promise<BaseApiResponse<null>> {
+        try {
+            await this.refreshTokenService.revokeToken(refreshToken);
+            return {
+                message: "Logout successful",
+                success: true,
+                data: null
+            };
+        } catch (error) {
+            return {
+                message: "Logout successful",
+                success: true,
+                data: null
+            };
         }
     }
 

@@ -12,6 +12,7 @@ import {CurrencyModule} from "./currency/currency.module";
 import {WebhookModule} from "./webhook/webhook.module";
 import {MailModule} from "./mail/mail.module";
 import {AdminModule} from "./admin/admin.module";
+import {PlanModule} from "./plan/plan.module";
 import {APP_FILTER} from "@nestjs/core";
 import {GlobalHttpExceptionFilter} from "./common/filters/global-http-exception.filter";
 import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
@@ -46,7 +47,8 @@ import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
         CurrencyModule,
         WebhookModule,
         MailModule,
-        AdminModule
+        AdminModule,
+        PlanModule
     ],
 })
 export class AppModule {

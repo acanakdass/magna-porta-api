@@ -6,6 +6,7 @@ export * from './refresh-token.entity';
 export * from './currency.entity';
 export * from './currency-group.entity';
 export * from './company-currency-rate.entity';
+export * from './plan-currency-rate.entity';
 export * from './webhook.entity';
 export * from './webhook-event-type.entity';
 export * from './webhook-template.entity';

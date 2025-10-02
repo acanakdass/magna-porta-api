@@ -14,7 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    const user = await this.usersService.findOneDynamic({ id: payload.sub }, ['role', 'role.permissions']);
+    const user = await this.usersService.findOneDynamic({ id: payload.sub }, ['role', 'role.permissions', 'company', 'company.plan']);
     console.log(user.role?.permissions);
     if (!user) {
       throw new UnauthorizedException();

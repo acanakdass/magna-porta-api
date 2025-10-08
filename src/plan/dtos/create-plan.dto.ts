@@ -88,4 +88,13 @@ export class CreatePlanDto {
   @IsOptional()
   @IsString()
   color?: string;
+
+  @ApiProperty({
+    description: 'Plan type ID for this plan',
+    example: 1,
+    required: false
+  })
+  @IsOptional()
+  @IsNumber()
+  planTypeId?: number;
 }

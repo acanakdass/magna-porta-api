@@ -14,7 +14,9 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PlanService } from './plan.service';
+import { PlanTypeService } from './plan-type.service';
 import { PlanSeedService } from './plan.seed';
+import { PlanTypeSeedService } from './plan-type.seed';
 import { PlanCurrencySeedService } from './plan-currency.seed';
 import { CreatePlanDto } from './dtos/create-plan.dto';
 import { UpdatePlanDto } from './dtos/update-plan.dto';
@@ -35,12 +37,14 @@ import { CompanyEntity } from '../company/company.entity';
 export class PlanController {
   constructor(
     private readonly planService: PlanService,
+    private readonly planTypeService: PlanTypeService,
     private readonly planSeedService: PlanSeedService,
+    private readonly planTypeSeedService: PlanTypeSeedService,
     private readonly planCurrencySeedService: PlanCurrencySeedService
   ) {}
 
   @Post()
-  @Roles('admin', 'super_admin')
+  @Roles('administrator', 'super_admin')
   @ApiOperation({ summary: 'Create a new plan' })
   @ApiResponse({ status: 201, description: 'Plan created successfully', type: PlanResponseDto })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed or plan name already exists' })
@@ -80,7 +84,7 @@ export class PlanController {
   }
 
   @Patch(':id')
-  @Roles('admin', 'super_admin')
+  @Roles('administrator', 'super_admin')
   @ApiOperation({ summary: 'Update plan by ID' })
   @ApiResponse({ status: 200, description: 'Plan updated successfully', type: PlanResponseDto })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed or plan name already exists' })
@@ -95,16 +99,38 @@ export class PlanController {
   }
 
   @Delete(':id')
-  @Roles('admin', 'super_admin')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete plan by ID' })
-  @ApiResponse({ status: 204, description: 'Plan deleted successfully' })
+  @Roles('administrator', 'super_admin')
+  @ApiOperation({ summary: 'Delete plan by ID (soft delete)' })
+  @ApiResponse({ status: 200, description: 'Plan soft deleted successfully', type: BaseApiResponse })
   @ApiResponse({ status: 400, description: 'Bad request - plan is being used by companies' })
   @ApiResponse({ status: 404, description: 'Plan not found' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
   async remove(@Param('id', ParseIntPipe) id: number): Promise<BaseApiResponse<void>> {
-    return await this.planService.deletePlan(id);
+    return await this.planService.softDeletePlan(id);
+  }
+
+  @Delete(':id/soft')
+  @Roles('administrator', 'super_admin')
+  @ApiOperation({ summary: 'Soft delete plan by ID' })
+  @ApiResponse({ status: 200, description: 'Plan soft deleted successfully', type: BaseApiResponse })
+  @ApiResponse({ status: 400, description: 'Bad request - plan is being used by companies' })
+  @ApiResponse({ status: 404, description: 'Plan not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async softDelete(@Param('id', ParseIntPipe) id: number): Promise<BaseApiResponse<void>> {
+    return await this.planService.softDeletePlan(id);
+  }
+
+  @Patch(':id/restore')
+  @Roles('administrator', 'super_admin')
+  @ApiOperation({ summary: 'Restore soft deleted plan by ID' })
+  @ApiResponse({ status: 200, description: 'Plan restored successfully' })
+  @ApiResponse({ status: 404, description: 'Deleted plan not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async restore(@Param('id', ParseIntPipe) id: number): Promise<BaseApiResponse<void>> {
+    return await this.planService.restorePlan(id);
   }
 
   @Get(':id/companies')
@@ -139,6 +165,30 @@ export class PlanController {
         success: false,
         data: undefined,
         message: `Failed to seed plan data: ${error.message}`
+      };
+    }
+  }
+
+  @Post('seed/plan-types')
+  @Roles('admin', 'super_admin')
+  @ApiOperation({ summary: 'Seed plan type data for testing' })
+  @ApiResponse({ status: 201, description: 'Plan type seed data created successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async seedPlanTypes(): Promise<BaseApiResponse<void>> {
+    try {
+      await this.planTypeSeedService.seed();
+      
+      return {
+        success: true,
+        data: undefined,
+        message: 'Plan type seed data created successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        data: undefined,
+        message: `Failed to seed plan type data: ${error.message}`
       };
     }
   }

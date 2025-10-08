@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PlanEntity } from './plan.entity';
+import { PlanTypeEntity } from './plan-type.entity';
 import { CreatePlanDto } from './dtos/create-plan.dto';
 import { UpdatePlanDto } from './dtos/update-plan.dto';
 import { PlanResponseDto } from './dtos/plan-response.dto';
@@ -17,6 +18,8 @@ export class PlanService extends BaseService<PlanEntity> {
     private readonly planRepo: Repository<PlanEntity>,
     @InjectRepository(CompanyEntity)
     private readonly companyRepo: Repository<CompanyEntity>,
+    @InjectRepository(PlanTypeEntity)
+    private readonly planTypeRepo: Repository<PlanTypeEntity>,
   ) {
     super(planRepo);
   }
@@ -24,20 +27,37 @@ export class PlanService extends BaseService<PlanEntity> {
   async createPlan(createPlanDto: CreatePlanDto): Promise<BaseApiResponse<PlanResponseDto>> {
     // Check if plan name already exists
     const existingPlan = await this.planRepo.findOne({
-      where: { name: createPlanDto.name }
+      where: { name: createPlanDto.name, isDeleted: false }
     });
 
     if (existingPlan) {
       throw new BadRequestException(`Plan with name '${createPlanDto.name}' already exists`);
     }
 
+    // Validate plan type if provided
+    if (createPlanDto.planTypeId) {
+      const planType = await this.planTypeRepo.findOne({
+        where: { id: createPlanDto.planTypeId, isDeleted: false }
+      });
+
+      if (!planType) {
+        throw new BadRequestException(`Plan type with ID ${createPlanDto.planTypeId} not found`);
+      }
+    }
+
     const entity = Object.assign(new PlanEntity(), createPlanDto);
     const createdPlan = await super.create(entity);
+
+    // Fetch the created plan with relations
+    const planWithRelations = await this.planRepo.findOne({
+      where: { id: createdPlan.id },
+      relations: ['companies', 'planType']
+    });
 
     const result = {
       success: true,
       message: 'Plan created successfully',
-      data: PlanResponseDto.fromEntity(createdPlan)
+      data: PlanResponseDto.fromEntity(planWithRelations)
     } as BaseApiResponse<PlanResponseDto>;
 
     if (!createdPlan) {
@@ -50,7 +70,8 @@ export class PlanService extends BaseService<PlanEntity> {
 
   async getAllPlans(): Promise<BaseApiResponse<PlanResponseDto[]>> {
     const plans = await this.planRepo.find({
-      relations: ['companies'],
+      where: { isDeleted: false },
+      relations: ['companies', 'planType'],
       order: { level: 'ASC' as const }
     });
 
@@ -65,8 +86,8 @@ export class PlanService extends BaseService<PlanEntity> {
 
   async getActivePlans(): Promise<BaseApiResponse<PlanResponseDto[]>> {
     const plans = await this.planRepo.find({
-      where: { isActive: true },
-      relations: ['companies'],
+      where: { isActive: true, isDeleted: false },
+      relations: ['companies', 'planType'],
       order: { level: 'ASC' as const }
     });
 
@@ -81,8 +102,8 @@ export class PlanService extends BaseService<PlanEntity> {
 
   async getPlanById(id: number): Promise<BaseApiResponse<PlanResponseDto>> {
     const plan = await this.planRepo.findOne({
-      where: { id },
-      relations: ['companies']
+      where: { id, isDeleted: false },
+      relations: ['companies', 'planType']
     });
 
     if (!plan) {
@@ -97,7 +118,7 @@ export class PlanService extends BaseService<PlanEntity> {
   }
 
   async updatePlan(id: number, updatePlanDto: UpdatePlanDto): Promise<BaseApiResponse<PlanResponseDto>> {
-    const plan = await this.planRepo.findOne({ where: { id } });
+    const plan = await this.planRepo.findOne({ where: { id, isDeleted: false } });
 
     if (!plan) {
       throw new NotFoundException(`Plan with ID ${id} not found`);
@@ -106,7 +127,7 @@ export class PlanService extends BaseService<PlanEntity> {
     // Check if new name conflicts with existing plan
     if (updatePlanDto.name && updatePlanDto.name !== plan.name) {
       const existingPlan = await this.planRepo.findOne({
-        where: { name: updatePlanDto.name }
+        where: { name: updatePlanDto.name, isDeleted: false }
       });
 
       if (existingPlan) {
@@ -114,19 +135,36 @@ export class PlanService extends BaseService<PlanEntity> {
       }
     }
 
+    // Validate plan type if provided
+    if (updatePlanDto.planTypeId) {
+      const planType = await this.planTypeRepo.findOne({
+        where: { id: updatePlanDto.planTypeId, isDeleted: false }
+      });
+
+      if (!planType) {
+        throw new BadRequestException(`Plan type with ID ${updatePlanDto.planTypeId} not found`);
+      }
+    }
+
     Object.assign(plan, updatePlanDto);
     const updatedPlan = await super.update(id, plan);
+
+    // Fetch the updated plan with relations
+    const planWithRelations = await this.planRepo.findOne({
+      where: { id: updatedPlan.id },
+      relations: ['companies', 'planType']
+    });
 
     return {
       success: true,
       message: 'Plan updated successfully',
-      data: PlanResponseDto.fromEntity(updatedPlan)
+      data: PlanResponseDto.fromEntity(planWithRelations)
     } as BaseApiResponse<PlanResponseDto>;
   }
 
   async deletePlan(id: number): Promise<BaseApiResponse<void>> {
     const plan = await this.planRepo.findOne({
-      where: { id },
+      where: { id, isDeleted: false },
       relations: ['companies']
     });
 
@@ -148,12 +186,58 @@ export class PlanService extends BaseService<PlanEntity> {
     } as BaseApiResponse<void>;
   }
 
+  async softDeletePlan(id: number): Promise<BaseApiResponse<void>> {
+    const plan = await this.planRepo.findOne({
+      where: { id, isDeleted: false },
+      relations: ['companies']
+    });
+
+    if (!plan) {
+      throw new NotFoundException(`Plan with ID ${id} not found`);
+    }
+
+    // Check if any companies are using this plan
+    if (plan.companies && plan.companies.length > 0) {
+      throw new BadRequestException(`Cannot delete plan '${plan.name}' as it is being used by ${plan.companies.length} company(ies)`);
+    }
+
+    // Perform soft delete
+    plan.isDeleted = true;
+    await this.planRepo.save(plan);
+
+    return {
+      success: true,
+      message: 'Plan deleted successfully',
+      data: null
+    } as BaseApiResponse<void>;
+  }
+
+  async restorePlan(id: number): Promise<BaseApiResponse<void>> {
+    const plan = await this.planRepo.findOne({
+      where: { id, isDeleted: true }
+    });
+
+    if (!plan) {
+      throw new NotFoundException(`Deleted plan with ID ${id} not found`);
+    }
+
+    // Restore the plan
+    plan.isDeleted = false;
+    await this.planRepo.save(plan);
+
+    return {
+      success: true,
+      message: 'Plan restored successfully',
+      data: undefined
+    } as BaseApiResponse<void>;
+  }
+
   async listPlansPaginated(paginationDto: PaginationDto): Promise<PaginatedResponseDto<PlanResponseDto>> {
     const result = await this.findAllWithPagination({
       ...paginationDto,
       select: [],
-      relations: ['companies'],
-      where: {},
+      relations: ['companies', 'planType'],
+      where: { isDeleted: false },
       orderBy: 'level',
       order: 'ASC'
     });
@@ -206,7 +290,7 @@ export class PlanService extends BaseService<PlanEntity> {
   }
 
   async getCompaniesByPlan(planId: number, paginationDto: PaginationDto): Promise<PaginatedResponseDto<CompanyEntity>> {
-    const plan = await this.planRepo.findOne({ where: { id: planId } });
+    const plan = await this.planRepo.findOne({ where: { id: planId, isDeleted: false } });
     if (!plan) {
       throw new NotFoundException(`Plan with ID ${planId} not found`);
     }

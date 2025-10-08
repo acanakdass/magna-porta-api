@@ -80,10 +80,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get current user by access token' })
   async me(@Req() req): Promise<BaseApiResponse<any>> {
+    const { password, emailVerificationToken, resetPasswordToken, ...userData } = req.user;
     return {
       success: true,
       message: 'Current user fetched successfully',
-      data: req.user,
+      data: userData,
     };
   }
 

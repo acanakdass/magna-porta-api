@@ -77,6 +77,19 @@ export class PlanResponseDto {
   color?: string;
 
   @ApiProperty({
+    description: 'Plan type ID for this plan',
+    example: 1,
+    required: false
+  })
+  planTypeId?: number;
+
+  @ApiProperty({
+    description: 'Plan type information',
+    required: false
+  })
+  planType?: any;
+
+  @ApiProperty({
     description: 'Companies using this plan',
     type: [CompanyEntity],
     required: false
@@ -108,6 +121,8 @@ export class PlanResponseDto {
     dto.isActive = entity.isActive;
     dto.icon = entity.icon;
     dto.color = entity.color;
+    dto.planTypeId = entity.planTypeId;
+    dto.planType = entity.planType;
     dto.companies = entity.companies;
     dto.createdAt = entity.createdAt!;
     dto.updatedAt = entity.updatedAt!;

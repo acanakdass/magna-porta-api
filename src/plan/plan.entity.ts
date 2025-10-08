@@ -1,7 +1,8 @@
-import { Entity, Column, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../common/entities/base.entity';
 import { CompanyEntity } from '../company/company.entity';
 import { PlanCurrencyRateEntity } from '../entities/plan-currency-rate.entity';
+import { PlanTypeEntity } from './plan-type.entity';
 import { IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -118,6 +119,25 @@ export class PlanEntity extends BaseEntity {
   @IsOptional()
   @IsString()
   color?: string;
+
+  @ApiProperty({
+    description: 'Plan type ID for this plan',
+    example: 1,
+    required: false
+  })
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsNumber()
+  planTypeId?: number;
+
+  @ApiProperty({
+    description: 'Plan type relationship',
+    type: () => PlanTypeEntity,
+    required: false
+  })
+  @ManyToOne(() => PlanTypeEntity, (planType) => planType.plans, { nullable: true })
+  @JoinColumn({ name: 'planTypeId' })
+  planType?: PlanTypeEntity;
 
   // Relations
   @OneToMany(() => CompanyEntity, (company) => company.plan)

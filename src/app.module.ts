@@ -13,6 +13,7 @@ import {WebhookModule} from "./webhook/webhook.module";
 import {MailModule} from "./mail/mail.module";
 import {AdminModule} from "./admin/admin.module";
 import {PlanModule} from "./plan/plan.module";
+import {TransferMarkupRatesModule} from "./transfer-markup-rates/transfer-markup-rates.module";
 import {APP_FILTER} from "@nestjs/core";
 import {GlobalHttpExceptionFilter} from "./common/filters/global-http-exception.filter";
 import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
@@ -34,7 +35,7 @@ import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
             password: process.env.DB_PASS,
             database: process.env.DB_NAME,
             autoLoadEntities: true,
-            synchronize: false,
+            synchronize: true,
             logging: false
         }),
         AuthModule,
@@ -48,7 +49,8 @@ import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
         WebhookModule,
         MailModule,
         AdminModule,
-        PlanModule
+        PlanModule,
+        TransferMarkupRatesModule
     ],
 })
 export class AppModule {

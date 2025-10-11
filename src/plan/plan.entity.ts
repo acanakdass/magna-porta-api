@@ -3,6 +3,7 @@ import { BaseEntity } from '../common/entities/base.entity';
 import { CompanyEntity } from '../company/company.entity';
 import { PlanCurrencyRateEntity } from '../entities/plan-currency-rate.entity';
 import { PlanTypeEntity } from './plan-type.entity';
+import { TransferMarkupRateEntity } from '../entities/transfer-markup-rate.entity';
 import { IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -145,4 +146,7 @@ export class PlanEntity extends BaseEntity {
 
   @OneToMany(() => PlanCurrencyRateEntity, (rate) => rate.plan)
   currencyRates!: PlanCurrencyRateEntity[];
+
+  @OneToMany(() => TransferMarkupRateEntity, (rate) => rate.plan)
+  transferMarkupRates!: TransferMarkupRateEntity[];
 }

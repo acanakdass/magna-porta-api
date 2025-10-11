@@ -12,7 +12,8 @@ export class LoggingMiddleware implements NestMiddleware {
         '/auth/register',
         '/users',
         '/companies',
-        '/airwallex'
+        '/airwallex',
+        '/transfer-markup-rates'
     ];
 
     constructor(private readonly logsService: LogsService) {}

@@ -10,6 +10,9 @@ import * as process from "node:process";
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
+  // Disable ETag to prevent 304 Not Modified responses
+  app.set('etag', false);
+  
   // Static files serve et
   app.useStaticAssets(join(__dirname, '..', 'src', 'assets'), {
     prefix: '/assets/',

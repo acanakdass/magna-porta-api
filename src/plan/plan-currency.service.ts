@@ -384,5 +384,73 @@ export class PlanCurrencyService {
       };
     }
   }
+
+  // Duplicate conversion rates from one plan to another
+  async duplicatePlanRates(sourcePlanId: number, targetPlanId: number): Promise<BaseApiResponse<PlanRateResponseDto[]>> {
+    try {
+      // Check if source plan exists
+      const sourcePlan = await this.planRepo.findOne({ where: { id: sourcePlanId } });
+      if (!sourcePlan) {
+        throw new NotFoundException(`Source plan with ID ${sourcePlanId} not found`);
+      }
+
+      // Check if target plan exists
+      const targetPlan = await this.planRepo.findOne({ where: { id: targetPlanId } });
+      if (!targetPlan) {
+        throw new NotFoundException(`Target plan with ID ${targetPlanId} not found`);
+      }
+
+      // Get all rates from source plan
+      const sourceRates = await this.planRateRepo.find({
+        where: { planId: sourcePlanId },
+        relations: ['currencyGroup']
+      });
+
+      if (sourceRates.length === 0) {
+        return {
+          success: true,
+          data: [],
+          message: `No conversion rates found in source plan ${sourcePlanId} to duplicate`
+        };
+      }
+
+      // Check if target plan already has rates
+      const existingTargetRates = await this.planRateRepo.find({
+        where: { planId: targetPlanId }
+      });
+
+      if (existingTargetRates.length > 0) {
+        throw new ConflictException(`Target plan ${targetPlanId} already has conversion rates. Cannot duplicate.`);
+      }
+
+      // Create new rates for target plan
+      const newRates = sourceRates.map(sourceRate => {
+        return this.planRateRepo.create({
+          planId: targetPlanId,
+          groupId: sourceRate.groupId,
+          conversionRate: sourceRate.conversionRate,
+          awRate: sourceRate.awRate,
+          mpRate: sourceRate.mpRate,
+          isActive: sourceRate.isActive,
+          notes: sourceRate.notes ? `Duplicated from plan ${sourcePlanId}: ${sourceRate.notes}` : `Duplicated from plan ${sourcePlanId}`
+        });
+      });
+
+      const savedRates = await this.planRateRepo.save(newRates);
+      const rateDtos = savedRates.map(rate => PlanRateResponseDto.fromEntity(rate));
+
+      return {
+        success: true,
+        data: rateDtos,
+        message: `Successfully duplicated ${savedRates.length} conversion rates from plan ${sourcePlanId} to plan ${targetPlanId}`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        data: null,
+        message: `Failed to duplicate plan rates: ${error.message}`
+      };
+    }
+  }
 }
 

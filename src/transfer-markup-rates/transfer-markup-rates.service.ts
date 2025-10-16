@@ -722,6 +722,86 @@ export class TransferMarkupRatesService extends BaseService<TransferMarkupRateEn
   }
 
   /**
+   * Duplicate transfer markup rates from one plan to another
+   */
+  async duplicateTransferMarkupRates(
+    sourcePlanId: number,
+    targetPlanId: number,
+  ): Promise<BaseApiResponse<TransferMarkupRateEntity[]>> {
+    try {
+      console.log("sourcePlanId",sourcePlanId);
+      console.log("targetPlanId",targetPlanId);
+      console.log("checking source plan");
+      // Check if source plan exists
+      const sourcePlan = await this.planRepository.findOne({ where: { id: sourcePlanId, isDeleted: false } });
+      if (!sourcePlan) {
+        throw new NotFoundException(`Source plan with ID ${sourcePlanId} not found`);
+      }
+
+      // Check if target plan exists
+      const targetPlan = await this.planRepository.findOne({ where: { id: targetPlanId, isDeleted: false } });
+      if (!targetPlan) {
+        throw new NotFoundException(`Target plan with ID ${targetPlanId} not found`);
+      }
+
+      // Get all rates from source plan
+      const sourceRates = await this.transferMarkupRateRepository.find({
+        where: { planId: sourcePlanId, isDeleted: false },
+      });
+
+      if (sourceRates.length === 0) {
+        return {
+          success: true,
+          data: [],
+          message: `No transfer markup rates found in source plan ${sourcePlanId} to duplicate`,
+        };
+      }
+
+      // Check if target plan already has rates
+      const existingTargetRates = await this.transferMarkupRateRepository.find({
+        where: { planId: targetPlanId, isDeleted: false },
+      });
+      if (existingTargetRates.length > 0) {
+        throw new ConflictException(`Target plan ${targetPlanId} already has transfer markup rates. Cannot duplicate.`);
+      }
+console.log("sourceRates",sourceRates);
+      // Create new rates for target plan
+      const newRates = sourceRates.map(sourceRate => {
+        return this.transferMarkupRateRepository.create({
+          planId: targetPlanId,
+          region: sourceRate.region,
+          country: sourceRate.country,
+          countryCode: sourceRate.countryCode,
+          currency: sourceRate.currency,
+          transactionType: sourceRate.transactionType,
+          transferMethod: sourceRate.transferMethod,
+          feeShaPercentage: sourceRate.feeShaPercentage,
+          feeShaMinimum: sourceRate.feeShaMinimum,
+          feeOurPercentage: sourceRate.feeOurPercentage,
+          feeOurMinimum: sourceRate.feeOurMinimum,
+          feeCurrency: sourceRate.feeCurrency,
+          isDeleted: false,
+        });
+      });
+
+      const savedRates = await this.transferMarkupRateRepository.save(newRates);
+
+      return {
+        success: true,
+        data: savedRates,
+        message: `Successfully duplicated ${savedRates.length} transfer markup rates from plan ${sourcePlanId} to plan ${targetPlanId}`,
+      };
+    } catch (error) {
+      console.log("error",error);
+      return {
+        success: false,
+        data: null,
+        message: `Failed to duplicate transfer markup rates: ${error.message}`,
+      };
+    }
+  }
+
+  /**
    * Get transfer markup rate by connected account ID and transfer criteria
    * This method finds the company by airwallex_account_id, gets its plan,
    * and returns the appropriate transfer markup rate based on the criteria

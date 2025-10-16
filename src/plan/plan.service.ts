@@ -10,6 +10,8 @@ import { BaseService } from '../common/services/base.service';
 import { BaseApiResponse } from '../common/dto/api-response-dto';
 import { PaginatedResponseDto, PaginationDto } from '../common/models/pagination-dto';
 import { CompanyEntity } from '../company/company.entity';
+import { PlanCurrencyService } from './plan-currency.service';
+import { TransferMarkupRatesService } from '../transfer-markup-rates/transfer-markup-rates.service';
 
 @Injectable()
 export class PlanService extends BaseService<PlanEntity> {
@@ -20,6 +22,8 @@ export class PlanService extends BaseService<PlanEntity> {
     private readonly companyRepo: Repository<CompanyEntity>,
     @InjectRepository(PlanTypeEntity)
     private readonly planTypeRepo: Repository<PlanTypeEntity>,
+    private readonly planCurrencyService: PlanCurrencyService,
+    private readonly transferMarkupRatesService: TransferMarkupRatesService,
   ) {
     super(planRepo);
   }
@@ -45,8 +49,47 @@ export class PlanService extends BaseService<PlanEntity> {
       }
     }
 
-    const entity = Object.assign(new PlanEntity(), createPlanDto);
+    // Validate source plan for duplication if provided
+    if (createPlanDto.duplicateFromPlanId) {
+      const sourcePlan = await this.planRepo.findOne({
+        where: { id: createPlanDto.duplicateFromPlanId, isDeleted: false }
+      });
+
+      if (!sourcePlan) {
+        throw new BadRequestException(`Source plan with ID ${createPlanDto.duplicateFromPlanId} not found`);
+      }
+    }
+
+    // Remove duplicateFromPlanId from DTO before creating entity
+    const { duplicateFromPlanId, ...planData } = createPlanDto;
+    const entity = Object.assign(new PlanEntity(), planData);
     const createdPlan = await super.create(entity);
+
+    // Duplicate conversion rates if source plan is specified
+    if (duplicateFromPlanId && createdPlan) {
+      const duplicateResult = await this.planCurrencyService.duplicatePlanRates(
+        duplicateFromPlanId, 
+        createdPlan.id
+      );
+      
+      if (!duplicateResult.success) {
+        // Delete the created plan if rate duplication fails
+        await this.planRepo.remove(createdPlan);
+        throw new BadRequestException(`Failed to duplicate conversion rates: ${duplicateResult.message}`);
+      }
+
+      // Duplicate transfer markup rates if source plan is specified
+      const duplicateMarkupResult = await this.transferMarkupRatesService.duplicateTransferMarkupRates(
+        duplicateFromPlanId,
+        createdPlan.id
+      );
+      
+      if (!duplicateMarkupResult.success) {
+        // Delete the created plan if markup rate duplication fails
+        await this.planRepo.remove(createdPlan);
+        throw new BadRequestException(`Failed to duplicate transfer markup rates: ${duplicateMarkupResult.message}`);
+      }
+    }
 
     // Fetch the created plan with relations
     const planWithRelations = await this.planRepo.findOne({

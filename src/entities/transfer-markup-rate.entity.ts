@@ -18,21 +18,23 @@ export class TransferMarkupRateEntity extends BaseEntity {
 
   @ApiProperty({
     description: 'Geographic region',
-    example: 'APAC'
+    example: 'APAC',
+    required: false
   })
-  @Column()
+  @Column({ nullable: true })
   @IsString()
-  @IsNotEmpty()
-  region!: string;
+  @IsOptional()
+  region?: string;
 
   @ApiProperty({
     description: 'Country name',
-    example: 'Singapore'
+    example: 'Singapore',
+    required: false
   })
-  @Column()
+  @Column({ nullable: true })
   @IsString()
-  @IsNotEmpty()
-  country!: string;
+  @IsOptional()
+  country?: string;
 
   @ApiProperty({
     description: 'ISO country code',

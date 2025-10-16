@@ -97,4 +97,13 @@ export class CreatePlanDto {
   @IsOptional()
   @IsNumber()
   planTypeId?: number;
+
+  @ApiProperty({
+    description: 'ID of existing plan to duplicate conversion rates from',
+    example: 1,
+    required: false
+  })
+  @IsOptional()
+  @IsNumber()
+  duplicateFromPlanId?: number;
 }

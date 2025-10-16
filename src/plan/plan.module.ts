@@ -14,15 +14,19 @@ import { CurrencyGroupEntity } from '../entities/currency-group.entity';
 import { PlanSeedService } from './plan.seed';
 import { PlanTypeSeedService } from './plan-type.seed';
 import { PlanCurrencySeedService } from './plan-currency.seed';
+import { TransferMarkupRatesModule } from '../transfer-markup-rates/transfer-markup-rates.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([
-    PlanEntity,
-    PlanTypeEntity,
-    CompanyEntity, 
-    PlanCurrencyRateEntity, 
-    CurrencyGroupEntity
-  ])],
+  imports: [
+    TypeOrmModule.forFeature([
+      PlanEntity,
+      PlanTypeEntity,
+      CompanyEntity, 
+      PlanCurrencyRateEntity, 
+      CurrencyGroupEntity
+    ]),
+    TransferMarkupRatesModule
+  ],
   controllers: [PlanController, PlanTypeController, CompanyPlanController, PlanCurrencyController],
   providers: [PlanService, PlanTypeService, PlanCurrencyService, PlanSeedService, PlanTypeSeedService, PlanCurrencySeedService],
   exports: [PlanService, PlanTypeService, PlanCurrencyService, PlanSeedService, PlanTypeSeedService, PlanCurrencySeedService],

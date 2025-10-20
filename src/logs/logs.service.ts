@@ -33,21 +33,23 @@ export class LogsService {
    * @param paginationDto Pagination parameters
    */
   async findAllWithPagination(paginationDto: PaginationDto): Promise<PaginatedResponseDto<LogEntity>> {
-    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'DESC' } = paginationDto;
+    const { page = 1, limit = 10, orderBy = 'createdAt', order = 'DESC' } = paginationDto;
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.logsRepository.findAndCount({
       skip,
       take: limit,
-      order: { [sortBy]: sortOrder },
+      order: { [orderBy]: order },
     });
 
     return {
       data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      meta: {
+        totalItems: total,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
     };
   }
 }

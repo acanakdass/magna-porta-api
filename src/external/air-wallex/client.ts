@@ -1,6 +1,8 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { airwallexConfig } from './config';
 import {AwAuthResponse} from "./dtos/aw-auth-dtos/aw-auth-response";
+import { AwFileUploadResponseDto } from './dtos/aw-file-upload-dtos';
+import { AwFileDownloadResponseDto, AwFileDownloadRequestDto } from './dtos/aw-file-download-dtos';
 /**
  * Base Airwallex API client
  */
@@ -131,5 +133,90 @@ export class AirwallexClient {
    */
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>('delete', endpoint);
+  }
+
+  /**
+   * Upload a file to Airwallex files API
+   */
+  async uploadFile(formData: FormData, queryParams: string = ''): Promise<AwFileUploadResponseDto> {
+    try {
+      const tokenResponse = await this.getToken();
+      
+      // Use files subdomain for file uploads
+      const filesBaseUrl = airwallexConfig.baseUrl.replace('api', 'files');
+      
+      console.log('Uploading to URL:', `${filesBaseUrl}/api/v1/files/upload${queryParams}`);
+      console.log('Token:', tokenResponse.token ? 'Present' : 'Missing');
+      console.log('Bearer Token:', tokenResponse.token);
+      
+      const response = await axios.post<AwFileUploadResponseDto>(
+        `${filesBaseUrl}/api/v1/files/upload${queryParams}`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${tokenResponse.token}`,
+            'x-api-key': airwallexConfig.apiKey,
+            'x-client-id': airwallexConfig.clientId,
+            // Content-Type'ı kaldırıyoruz, axios otomatik ayarlayacak
+          },
+          timeout: 30000, // 30 seconds timeout for file uploads
+        }
+      );
+      
+      console.log('Upload response status:', response.status);
+      console.log('Upload response data:', response.data);
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Error uploading file to Airwallex:');
+      console.error('Status:', error.response?.status);
+      console.error('Data:', error.response?.data);
+      console.error('Message:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get download links for files from Airwallex
+   */
+  async getFileDownloadLinks(fileIds: string[]): Promise<AwFileDownloadResponseDto> {
+    try {
+      const tokenResponse = await this.getToken();
+      
+      console.log('Getting download links for files:', fileIds);
+      console.log('Token:', tokenResponse.token ? 'Present' : 'Missing');
+      console.log('Bearer Token:', tokenResponse.token);
+      
+      const requestData: AwFileDownloadRequestDto = {
+        file_ids: fileIds
+      };
+      
+      console.log('Request data:', requestData);
+      
+      const response = await axios.post<AwFileDownloadResponseDto>(
+        `${airwallexConfig.baseUrl}/api/v1/files/download_links`,
+        requestData,
+        {
+          headers: {
+            'Authorization': `Bearer ${tokenResponse.token}`,
+            'x-api-key': airwallexConfig.apiKey,
+            'x-client-id': airwallexConfig.clientId,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
+      
+      console.log('Download links response status:', response.status);
+      console.log('Download links response data:', response.data);
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting file download links from Airwallex:');
+      console.error('Status:', error.response?.status);
+      console.error('Data:', error.response?.data);
+      console.error('Message:', error.message);
+      throw error;
+    }
   }
 }

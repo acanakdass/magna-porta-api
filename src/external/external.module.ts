@@ -11,6 +11,7 @@ import {AwContactsService} from "./air-wallex/services/aw-contacts.service";
 import {AwTransactionsService} from "./air-wallex/services/aw-transactions.service";
 import {AwTransfersService} from "./air-wallex/services/aw-transfers.service";
 import {AwScaService} from "./air-wallex/services/aw-sca.service";
+import {AwFileUploadService} from "./air-wallex/services/aw-file-upload.service";
 import {AwConnectedAccountsController} from "./air-wallex/controllers/aw-connected-accounts.controller";
 import {AwConversionController} from "./air-wallex/controllers/aw-conversion.controller";
 import {AwBalancesController} from "./air-wallex/controllers/aw-balances.controller";
@@ -21,6 +22,7 @@ import {AwContactsController} from "./air-wallex/controllers/aw-contacts.control
 import {AwTransactionsController} from "./air-wallex/controllers/aw-transactions.controller";
 import {AwTransfersController} from "./air-wallex/controllers/aw-transfers.controller";
 import {AwScaController} from "./air-wallex/controllers/aw-sca.controller";
+import {AwFileUploadController} from "./air-wallex/controllers/aw-file-upload.controller";
 
 @Module({
     providers: [ExternalService,
@@ -34,7 +36,8 @@ import {AwScaController} from "./air-wallex/controllers/aw-sca.controller";
         AwContactsService,
         AwTransactionsService,
         AwTransfersService,
-        AwScaService],
+        AwScaService,
+        AwFileUploadService],
     exports: [
         ExternalService,
         AwConnectedAccountsService,
@@ -47,7 +50,8 @@ import {AwScaController} from "./air-wallex/controllers/aw-sca.controller";
         AwContactsService,
         AwTransactionsService,
         AwTransfersService,
-        AwScaService
+        AwScaService,
+        AwFileUploadService
     ],
     controllers:[
         AwConnectedAccountsController, 
@@ -59,7 +63,8 @@ import {AwScaController} from "./air-wallex/controllers/aw-sca.controller";
         AwContactsController,
         AwTransactionsController,
         AwTransfersController,
-        AwScaController
+        AwScaController,
+        AwFileUploadController
     ]
 })
 export class ExternalModule {}

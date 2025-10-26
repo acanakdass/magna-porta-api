@@ -17,6 +17,7 @@ import {TransferMarkupRatesModule} from "./transfer-markup-rates/transfer-markup
 import {APP_FILTER} from "@nestjs/core";
 import {GlobalHttpExceptionFilter} from "./common/filters/global-http-exception.filter";
 import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
+import {IpFilterMiddleware} from "./common/middlewares/ip-filter.middleware";
 
 @Module({
     providers:[
@@ -55,6 +56,10 @@ import {LoggingMiddleware} from "./common/middlewares/logging.middleware";
 })
 export class AppModule {
     configure(consumer: MiddlewareConsumer) {
-        consumer.apply(LoggingMiddleware).forRoutes('*'); // For all routes
+        // Apply IP filter middleware first (security layer)
+        consumer.apply(IpFilterMiddleware).forRoutes('*');
+        
+        // Apply logging middleware second (monitoring layer)
+        consumer.apply(LoggingMiddleware).forRoutes('*');
     }
 }

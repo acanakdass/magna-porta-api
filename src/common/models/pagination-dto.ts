@@ -44,6 +44,13 @@ export class PaginationDto {
     @IsOptional()
     order?: 'ASC' | 'DESC' = 'DESC';
 
+    @ApiPropertyOptional({
+        description: 'Search term to filter results',
+        default: ''
+    })
+    @IsString()
+    @IsOptional()
+    search?: string;
 
     select?: string[];
     relations?: string[];

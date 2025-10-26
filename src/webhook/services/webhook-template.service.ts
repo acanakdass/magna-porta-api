@@ -6,7 +6,6 @@ import { WebhookTemplate } from '../../entities/webhook-template.entity';
 import { WebhookEventType } from '../../entities/webhook-event-type.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/models/pagination-dto';
 import { UpsertTemplateDto } from '../dto/upsert-template.dto';
-import { WebhookDataParserService } from '../services/webhook-data-parser.service';
 
 // moved to dto file
 
@@ -19,7 +18,6 @@ export class WebhookTemplateService {
     private readonly templateRepo: Repository<WebhookTemplate>,
     @InjectRepository(WebhookEventType)
     private readonly eventTypeRepo: Repository<WebhookEventType>,
-    private readonly parser: WebhookDataParserService,
     private readonly configService: ConfigService,
   ) {
     this.LOGO_URL = this.configService.get('LOGO_URL', 'http://localhost:3001/assets/magnaporta-logos/logo_magna_porta.png');
@@ -188,9 +186,34 @@ export class WebhookTemplateService {
     return { created, updated };
   }
 
+  private formatMoneyAmount(value: any): string {
+    const num = parseFloat(value);
+    if (isNaN(num)) return value;
+    
+    // European format: thousand separator dot, decimal separator comma
+    return num.toLocaleString('de-DE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
   private resolvePlaceholders(input: string, data: any): string {
     if (!input) return '';
-    return input.replace(/\{\{\s*([\w\.]+)\s*\}\}/g, (_m, path) => {
+    
+    // Handle money_amount format: {{field_name:money_amount}}
+    return input.replace(/\{\{\s*([\w\.]+):money_amount\s*\}\}/g, (_m, path) => {
+      const parts = String(path).split('.');
+      let value: any = data;
+      for (const p of parts) {
+        if (value && Object.prototype.hasOwnProperty.call(value, p)) {
+          value = value[p];
+        } else {
+          value = '';
+          break;
+        }
+      }
+      return this.formatMoneyAmount(value ?? '');
+    }).replace(/\{\{\s*([\w\.]+)\s*\}\}/g, (_m, path) => {
       const parts = String(path).split('.');
       let value: any = data;
       for (const p of parts) {
@@ -241,7 +264,8 @@ export class WebhookTemplateService {
     const tpl = await this.templateRepo.findOne({ where: { eventType: { id: eventType.id }, channel, locale }, relations: ['eventType'] });
     if (!tpl) throw new NotFoundException('Template not found for given eventName/channel/locale');
 
-    const parsed = this.parser.parseWebhookData(eventName, rawData);
+    // Raw data'yı direkt kullan, parse etme
+    const parsed = rawData;
 
     // reuse rendering by id logic by faking template fetch path
     // Duplicate minimal part to avoid extra query

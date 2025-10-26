@@ -69,7 +69,7 @@ export class AwFileUploadService {
       };
     } catch (error: any) {
         console.log("errorerrrrrrr");
-      console.error('Error uploading file to Airwallex:', error);
+      console.error('Error uploading file to Airwallex:', error.response?.data);
 
       if (error instanceof BadRequestException) {
         throw error;
@@ -105,9 +105,10 @@ export class AwFileUploadService {
   /**
    * Get download links for files from Airwallex
    * @param fileIds Array of file IDs to get download links for
+   * @param onBehalfOf Optional parameter for acting on behalf of another user/account
    * @returns Promise<BaseApiResponse<AwFileDownloadResponseDto>>
    */
-  async getFileDownloadLinks(fileIds: string[]): Promise<BaseApiResponse<AwFileDownloadResponseDto>> {
+  async getFileDownloadLinks(fileIds: string[], onBehalfOf?: string): Promise<BaseApiResponse<AwFileDownloadResponseDto>> {
     try {
       // Validate input
       if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
@@ -122,9 +123,10 @@ export class AwFileUploadService {
       }
 
       console.log('Getting download links for file IDs:', fileIds);
+      console.log('On behalf of:', onBehalfOf || 'Not specified');
 
       // Get download links from Airwallex
-      const response = await this.client.getFileDownloadLinks(fileIds);
+      const response = await this.client.getFileDownloadLinks(fileIds, onBehalfOf);
 
       if (!response) {
         throw new Error('No response received from Airwallex download links API');
@@ -136,7 +138,7 @@ export class AwFileUploadService {
         message: 'Download links retrieved successfully',
       };
     } catch (error: any) {
-      console.error('Error getting file download links from Airwallex:', error);
+      console.error('Error getting file download links from Airwallex:', error.response?.data?.toString());
 
       if (error instanceof BadRequestException) {
         throw error;
@@ -144,7 +146,7 @@ export class AwFileUploadService {
 
       // Airwallex API hata yönetimi
       if (error.response?.status === 401) {
-        throw new UnauthorizedException('Invalid or expired Airwallex credentials');
+        throw new UnauthorizedException('Invalid or expired Airwallex credentials. Error: ' + JSON.stringify(error.response?.data));
       }
 
       if (error.response?.status === 400) {

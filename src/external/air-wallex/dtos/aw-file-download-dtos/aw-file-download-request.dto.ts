@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString } from 'class-validator';
+import { IsArray, IsString, IsOptional } from 'class-validator';
 
 export class AwFileDownloadRequestDto {
   @ApiProperty({
@@ -10,4 +10,13 @@ export class AwFileDownloadRequestDto {
   @IsArray()
   @IsString({ each: true })
   file_ids: string[];
+
+  @ApiProperty({
+    description: 'Optional parameter for acting on behalf of another user/account',
+    required: false,
+    example: 'account-123'
+  })
+  @IsOptional()
+  @IsString()
+  onBehalfOf?: string;
 }

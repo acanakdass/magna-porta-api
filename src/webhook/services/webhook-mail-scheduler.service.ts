@@ -9,7 +9,6 @@ import { EmailTemplatesService, TransferNotificationData } from '../../mail/emai
 import { ConversionSettledEmailData } from '../models/conversion-settled.model';
 import { AccountActiveHookData, AccountActiveEmailData } from '../models/account-active.model';
 import { GlobalAccountActiveEmailData } from '../models/global-account-active.model';
-import { WebhookDataParserService } from './webhook-data-parser.service';
 
 @Injectable()
 export class WebhookMailSchedulerService {
@@ -24,7 +23,6 @@ export class WebhookMailSchedulerService {
     private readonly configService: ConfigService,
     private readonly emailTemplatesService: EmailTemplatesService,
     private readonly webhookTemplateService: WebhookTemplateService,
-    private readonly webhookDataParserService: WebhookDataParserService,
   ) {
     // Logo URL'ini environment'dan al, fallback olarak production URL
     this.LOGO_URL = this.configService.get('LOGO_URL', 'http://209.38.223.41:3001/assets/magnaporta-logos/logo_magna_porta.png');
@@ -86,8 +84,6 @@ export class WebhookMailSchedulerService {
       
       this.logger.log(`Webhook ${webhook.webhookName} için template aktif ve otomatik mail açık, mail gönderilecek`);
 
-      let subject = this.generateWebhookSubject(webhook.webhookName);
-      
       // Account ID ile company bul
       const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
       if (company) {
@@ -98,8 +94,11 @@ export class WebhookMailSchedulerService {
         }
       }
       
-      subject = this.generateWebhookSubject(webhook.webhookName);
+      // Template'den dinamik subject al
+      const subject = await this.getWebhookSubjectFromTemplate(webhook.webhookName, webhook.dataJson);
       let htmlContent: string;
+      let templateSubject = subject; // Default olarak fallback subject
+      
       try {
         const rendered = await this.webhookTemplateService.renderTemplateByEvent(
           webhook.webhookName,
@@ -107,19 +106,19 @@ export class WebhookMailSchedulerService {
           'en',
           webhook.dataJson,
         );
-        subject = rendered.subject || subject;
+        templateSubject = rendered.subject || subject;
         htmlContent = rendered.html;
         
         // Override kontrolü - webhook'ta override varsa kullan, yoksa template'den al
         htmlContent = this.applySubtextOverrides(htmlContent, webhook.overriddenSubtext1, webhook.overriddenSubtext2);
       } catch {
-        htmlContent = this.generateWebhookEmailContent(webhook, company);
+        htmlContent = await this.generateWebhookEmailContent(webhook, company);
       }
       
       if (!company) {
         this.logger.warn(`Company bulunamadı: ${webhook.accountId}`);
         // Company bulunamadıysa admin'e fallback mail gönder
-        const fallbackSubject = `[FALLBACK] ${subject} - Company Bulunamadı`;
+        const fallbackSubject = `[FALLBACK] ${templateSubject} - Company Bulunamadı`;
         const fallbackContent = this.generateFallbackEmailContent(webhook, 'company_not_found', null);
         
         await this.mailService.sendHtmlMail(
@@ -138,7 +137,7 @@ export class WebhookMailSchedulerService {
       if (usersWithEmail.length === 0) {
         this.logger.warn(`Company ${company.name} için aktif user bulunamadı`);
         // User bulunamadıysa admin'e fallback mail gönder
-        const fallbackSubject = `[FALLBACK] ${subject} - Users Bulunamadı`;
+        const fallbackSubject = `[FALLBACK] ${templateSubject} - Users Bulunamadı`;
         const fallbackContent = this.generateFallbackEmailContent(webhook, 'users_not_found', company);
         
         await this.mailService.sendHtmlMail(
@@ -153,7 +152,7 @@ export class WebhookMailSchedulerService {
       // Her user'a mail gönder
       const emailAddresses = usersWithEmail.map(user => user.email);
       
-      await this.mailService.sendHtmlMail(emailAddresses, subject, htmlContent);
+      await this.mailService.sendHtmlMail(emailAddresses, templateSubject, htmlContent);
 
       // Webhook'u mail gönderildi olarak işaretle
       await this.webhookService.markMailAsSent(webhook.id);
@@ -168,47 +167,29 @@ export class WebhookMailSchedulerService {
   }
 
   /**
-   * Webhook tipine göre anlamlı email subject oluşturur
+   * Webhook template'inden dinamik olarak subject alır
    */
-  private generateWebhookSubject(webhookName: string): string {
-    switch (webhookName) {
-      case 'payout.transfer.in_approval':
-        return 'Transfer Approval Required - Action Needed';
-      case 'payout.transfer.approval_rejected':
-        return 'Transfer Approval Rejected - Review Required';
-      case 'payout.transfer.approval_blocked':
-        return 'Transfer Approval Blocked - Compliance Issue';
-      case 'payout.transfer.funding.requires_funding_confirmation':
-        return 'Funding Confirmation Required - Action Needed';
-      case 'payout.transfer.funding.failed':
-        return 'Transfer Funding Failed - Issue Detected';
-      case 'payout.transfer.funding.cancelled':
-        return 'Transfer Funding Cancelled - Process Stopped';
-      case 'payout.transfer.funding.funded':
-        return 'Transfer Successfully Funded - Process Complete';
-      case 'connected_account_transfer':
-        return 'Connected Account Transfer Completed';
-      case 'conversion':
-        return 'Currency Conversion Completed';
-      case 'conversion.settled':
-        return 'Currency Conversion Settled - Process Complete';
-      case 'transfer':
-        return 'Transfer Processed Successfully';
-      case 'account.active':
-        return 'Account Successfully Activated';
-      case 'global_account.active':
-        return 'Global Account Successfully Activated';
-      default:
-        return `Webhook Notification: ${webhookName}`;
+  private async getWebhookSubjectFromTemplate(webhookName: string, data: any = {}): Promise<string> {
+    try {
+      const rendered = await this.webhookTemplateService.renderTemplateByEvent(
+        webhookName,
+        'email',
+        'en',
+        data
+      );
+      return rendered.subject || `Webhook Notification: ${webhookName}`;
+    } catch (error) {
+      this.logger.warn(`Template bulunamadı veya render edilemedi: ${webhookName}, fallback subject kullanılıyor`);
+      return `Webhook Notification: ${webhookName}`;
     }
   }
 
   /**
    * Webhook email içeriği oluşturur
    */
-  private generateWebhookEmailContent(webhook: any, company?: any): string {
+  private async generateWebhookEmailContent(webhook: any, company?: any): Promise<string> {
     // Webhook name'e göre özelleştirilmiş içerik
-    const customContent = this.generateCustomWebhookContent(webhook);
+    const customContent = await this.generateCustomWebhookContent(webhook);
     
     return `
       <!DOCTYPE html>
@@ -229,7 +210,7 @@ export class WebhookMailSchedulerService {
           
           <tr>
             <td style="padding: 40px 30px; background-color: #ffffff;">
-              ${this.generateMinimalWebhookContent(webhook)}
+              ${await this.generateMinimalWebhookContent(webhook)}
               
               <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
                 <tr>
@@ -261,7 +242,7 @@ export class WebhookMailSchedulerService {
     try {
       const subject = `[BİLGİLENDİRME] Webhook ${webhook.webhookName} - ${emailAddresses.length} User'a Mail Gönderildi`;
       
-      const htmlContent = this.generateAdminNotificationContent(webhook, company, users, emailAddresses);
+      const htmlContent = await this.generateAdminNotificationContent(webhook, company, users, emailAddresses);
       
       await this.mailService.sendHtmlMail(
         this.ADMIN_EMAIL,
@@ -366,38 +347,19 @@ export class WebhookMailSchedulerService {
   /**
    * Webhook name'e göre özelleştirilmiş içerik oluşturur
    */
-  private generateCustomWebhookContent(webhook: any): string {
-    const webhookName = webhook.webhookName;
-    const data = webhook.dataJson;
-    
-    switch (webhookName) {
-      case 'payout.transfer.funding.funded':
-        return this.generatePayoutTransferContent(data);
-      
-      case 'connected_account_transfer.new':
-        return this.generateConnectedAccountTransferContent(data);
-      
-      case 'conversion.new':
-        return this.generateConversionContent(data);
-      
-      case 'transfer.new':
-        return this.generateTransferContent(data);
-      
-      case 'account.active':
-        return this.generateAccountActiveContent(data);
-      
-      case 'global_account.active':
-        //console.log(data)
-        //const parsedGlobalAccountData = this.webhookDataParserService.parseWebhookData('global_account.active', data);
-        //console.log("parsedGlobalAccountData")
-        //console.log(parsedGlobalAccountData)
-        console.log("----------------------------------------------")
-        console.log("generateGlobalAccountActiveContent")
-        console.log("----------------------------------------------")
-        return this.generateGlobalAccountActiveContent(data);
-      
-      default:
-        return this.generateDefaultContent(webhookName);
+  private async generateCustomWebhookContent(webhook: any): Promise<string> {
+    try {
+      // Template sistemini kullan
+      const rendered = await this.webhookTemplateService.renderTemplateByEvent(
+        webhook.webhookName,
+        'email',
+        'en',
+        webhook.dataJson
+      );
+      return rendered.html;
+    } catch (error) {
+      this.logger.warn(`Template bulunamadı veya render edilemedi: ${webhook.webhookName}, fallback content kullanılıyor`);
+      return this.generateDefaultContent(webhook.webhookName);
     }
   }
 
@@ -656,58 +618,19 @@ export class WebhookMailSchedulerService {
   /**
    * Normal kullanıcılar için minimal webhook content
    */
-  private generateMinimalWebhookContent(webhook: any): string {
-    const data = webhook.dataJson;
-    
-    switch (webhook.webhookName) {
-      case 'payout_transfer_funding_funded':
-        // Webhook data parser service'i kullanarak data'yı parse et
-        const parsedPayoutData = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
-        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData);
-      case 'payout.transfer.funding.funded':
-        // Webhook data parser service'i kullanarak data'yı parse et
-        const parsedPayoutData2 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
-        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData2);
-      case 'payout.transfer.in_approval':
-        // Webhook data parser service'i kullanarak data'yı parse et
-        const parsedPayoutData3 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
-        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData3);
-      case 'payout.transfer.approval_rejected':
-        // Webhook data parser service'i kullanarak data'yı parse et
-        const parsedPayoutData4 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
-        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData4);
-      case 'payout.transfer.approval_blocked':
-        // Webhook data parser service'i kullanarak data'yı parse et
-        const parsedPayoutData5 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
-        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData5);
-      case 'payout.transfer.funding.requires_funding_confirmation':
-        // Webhook data parser service'i kullanarak data'yı parse et
-        const parsedPayoutData6 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
-        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData6);
-      case 'payout.transfer.funding.failed':
-        // Webhook data parser service'i kullanarak data'yı parse et
-        const parsedPayoutData7 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
-        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData7);
-      case 'payout.transfer.funding.cancelled':
-        // Webhook data parser service'i kullanarak data'yı parse et
-        const parsedPayoutData8 = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
-        return this.generatePayoutTransferFundingFundedTemplate(parsedPayoutData8);
-      case 'connected_account_transfer':
-        return this.generateTransferCompletedTemplate(data);
-      case 'conversion':
-        return this.generateConversionCompletedTemplate(data);
-      case 'conversion.settled':
-        // Webhook data parser service'i kullanarak data'yı parse et
-        const parsedData = this.webhookDataParserService.parseWebhookData(webhook.webhookName, data);
-        return this.generateConversionSettledTemplate(parsedData);
-      case 'transfer':
-        return this.generateTransferProcessedTemplate(data);
-      case 'account.active':
-        return this.generateAccountActiveTemplate(data);
-      case 'global_account.active':
-        return this.generateGlobalAccountActiveTemplate(data);
-      default:
-        return this.generateDefaultWebhookTemplate(webhook.webhookName);
+  private async generateMinimalWebhookContent(webhook: any): Promise<string> {
+    try {
+      // Template sistemini kullan
+      const rendered = await this.webhookTemplateService.renderTemplateByEvent(
+        webhook.webhookName,
+        'email',
+        'en',
+        webhook.dataJson
+      );
+      return rendered.html;
+    } catch (error) {
+      this.logger.warn(`Template bulunamadı veya render edilemedi: ${webhook.webhookName}, fallback content kullanılıyor`);
+      return this.generateDefaultWebhookTemplate(webhook.webhookName);
     }
   }
 
@@ -1605,12 +1528,12 @@ export class WebhookMailSchedulerService {
   /**
    * Admin notification email content
    */
-  private generateAdminNotificationContent(webhook: any, company: any, users: any[], emailAddresses: string[]): string {
+  private async generateAdminNotificationContent(webhook: any, company: any, users: any[], emailAddresses: string[]): Promise<string> {
     const receivedTime = new Date(webhook.receivedAt).toLocaleString('en-US');
     const currentTime = new Date().toLocaleString('en-US');
     
     // Webhook custom content for admin
-    const webhookCustomContent = this.generateCustomWebhookContent(webhook);
+    const webhookCustomContent = await this.generateCustomWebhookContent(webhook);
     
     return `
       <!DOCTYPE html>

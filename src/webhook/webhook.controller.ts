@@ -144,10 +144,7 @@ export class WebhookController {
       webhookName: webhook.webhookName,
       receivedAt: webhook.receivedAt,
       updatedAt: webhook.updatedAt,
-      parsedData: this.webhookService['webhookDataParserService'].parseWebhookData(
-        webhook.webhookName,
-        webhook.dataJson
-      )
+      parsedData: webhook.dataJson // Raw data kullan
     }));
   }
 

@@ -179,11 +179,12 @@ export class AirwallexClient {
   /**
    * Get download links for files from Airwallex
    */
-  async getFileDownloadLinks(fileIds: string[]): Promise<AwFileDownloadResponseDto> {
+  async getFileDownloadLinks(fileIds: string[], onBehalfOf?: string): Promise<AwFileDownloadResponseDto> {
     try {
       const tokenResponse = await this.getToken();
       
       console.log('Getting download links for files:', fileIds);
+      console.log('On behalf of:', onBehalfOf || 'Not specified');
       console.log('Token:', tokenResponse.token ? 'Present' : 'Missing');
       console.log('Bearer Token:', tokenResponse.token);
       
@@ -193,16 +194,24 @@ export class AirwallexClient {
       
       console.log('Request data:', requestData);
       
+      // Prepare headers
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${tokenResponse.token}`,
+        'x-api-key': airwallexConfig.apiKey,
+        'x-client-id': airwallexConfig.clientId,
+        'Content-Type': 'application/json',
+      };
+
+      // Add x-on-behalf-of header if onBehalfOf is provided
+      if (onBehalfOf) {
+        headers['x-on-behalf-of'] = onBehalfOf;
+      }
+      
       const response = await axios.post<AwFileDownloadResponseDto>(
         `${airwallexConfig.baseUrl}/api/v1/files/download_links`,
         requestData,
         {
-          headers: {
-            'Authorization': `Bearer ${tokenResponse.token}`,
-            'x-api-key': airwallexConfig.apiKey,
-            'x-client-id': airwallexConfig.clientId,
-            'Content-Type': 'application/json',
-          },
+          headers,
           timeout: 10000,
         }
       );

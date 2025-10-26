@@ -73,9 +73,9 @@ export class AwAccountService {
         } catch (error: any) {
             console.error('Error creating Airwallex account:', error.response?.data || error.message);
             if (error.response?.status === 401) {
-                throw new UnauthorizedException('Authentication failed. Please check your credentials.');
+                throw new UnauthorizedException('Authentication failed. Please check your credentials. Error: ' + error.response?.data);
             }
-            throw new InternalServerErrorException('Failed to create Airwallex account.');
+            throw new InternalServerErrorException('Failed to create Airwallex account. Error: ' + JSON.stringify(error.response?.data));
         }
     }
 

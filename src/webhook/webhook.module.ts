@@ -8,7 +8,6 @@ import { WebhookProcessingRulesController } from './controllers/webhook-processi
 import { WebhookRefsController } from './controllers/webhook-refs.controller';
 import { WebhookRefsSeedController } from './controllers/webhook-refs-seed.controller';
 import { WebhookService } from './webhook.service';
-import { WebhookDataParserService } from './services/webhook-data-parser.service';
 import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
 import { Webhook } from '../entities/webhook.entity';
 import { WebhookEventType } from '../entities/webhook-event-type.entity';
@@ -28,7 +27,7 @@ import { WebhookTemplateService } from './services/webhook-template.service';
     CompaniesModule
   ],
   controllers: [WebhookController, WebhookTemplatesController, WebhookEventTypesController, WebhookProcessingRulesController, WebhookRefsController, WebhookRefsSeedController],
-  providers: [WebhookService, WebhookDataParserService, WebhookMailSchedulerService, WebhookTemplateService],
-  exports: [WebhookService, WebhookDataParserService, WebhookMailSchedulerService, WebhookTemplateService],
+  providers: [WebhookService, WebhookMailSchedulerService, WebhookTemplateService],
+  exports: [WebhookService, WebhookMailSchedulerService, WebhookTemplateService],
 })
 export class WebhookModule {}

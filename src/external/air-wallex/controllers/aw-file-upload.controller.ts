@@ -126,8 +126,6 @@ export class AwFileUploadController {
   async getFileDownloadLinks(
     @Body() requestDto: AwFileDownloadRequestDto
   ): Promise<BaseApiResponse<AwFileDownloadResponseDto>> {
-  
-
-    return await this.fileUploadService.getFileDownloadLinks(requestDto.file_ids);
+    return await this.fileUploadService.getFileDownloadLinks(requestDto.file_ids, requestDto.onBehalfOf);
   }
 }

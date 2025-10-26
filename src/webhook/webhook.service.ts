@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Webhook } from '../entities/webhook.entity';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
-import { WebhookDataParserService } from './services/webhook-data-parser.service';
 import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
 import { WebhookTemplateService } from './services/webhook-template.service';
 import { MailService } from '../mail/mail.service';
@@ -16,7 +15,6 @@ export class WebhookService {
   constructor(
     @InjectRepository(Webhook)
     private webhookRepository: Repository<Webhook>,
-    private webhookDataParserService: WebhookDataParserService,
     private readonly templateService: WebhookTemplateService,
     private readonly mailService: MailService,
     private readonly companiesService: CompaniesService,
@@ -43,16 +41,29 @@ export class WebhookService {
     const page = Number(query.page) || 1;
     const limit = Math.min(Number(query.limit) || 10, 100);
     const skip = (page - 1) * limit;
-    const orderBy = query.orderBy || 'receivedAt';
-    const order = (query.order as any) || 'DESC';
+    
+    // Allowed orderBy fields for security
+    const allowedOrderByFields = ['webhookName', 'createdAt'];
+    const orderBy = allowedOrderByFields.includes(query.orderBy) ? query.orderBy : 'createdAt';
+    const order = (query.order === 'ASC' || query.order === 'DESC') ? query.order : 'DESC';
 
     const qb = this.webhookRepository.createQueryBuilder('wh')
+      .leftJoin('companies', 'c', 'c.airwallex_account_id = wh.accountId')
       .orderBy(`wh.${orderBy}`, order)
       .skip(skip)
       .take(limit);
 
     if (query.webhookName) qb.andWhere('wh.webhookName = :webhookName', { webhookName: query.webhookName });
     if (query.accountId) qb.andWhere('wh.accountId = :accountId', { accountId: query.accountId });
+    
+    // Search functionality
+    if (query.search && query.search.trim()) {
+      const searchTerm = `%${query.search.trim()}%`;
+      qb.andWhere(
+        '(wh.webhookName ILIKE :search OR wh.accountId ILIKE :search OR wh.webhookId ILIKE :search OR wh.data_json::text ILIKE :search OR wh.data_json->>\'connected_account_id\' ILIKE :search OR wh.data_json->>\'connected_account_name\' ILIKE :search OR wh.data_json->>\'connected_account_nick_name\' ILIKE :search OR c.name ILIKE :search OR c.airwallex_account_id ILIKE :search)',
+        { search: searchTerm }
+      );
+    }
 
     const [rows, total] = await qb.getManyAndCount();
     return {
@@ -70,17 +81,30 @@ export class WebhookService {
     const page = Number(query.page) || 1;
     const limit = Math.min(Number(query.limit) || 10, 100);
     const skip = (page - 1) * limit;
-    const orderBy = query.orderBy || 'receivedAt';
-    const order = (query.order as any) || 'DESC';
+    
+    // Allowed orderBy fields for security
+    const allowedOrderByFields = ['webhookName', 'createdAt'];
+    const orderBy = allowedOrderByFields.includes(query.orderBy) ? query.orderBy : 'createdAt';
+    const order = (query.order === 'ASC' || query.order === 'DESC') ? query.order : 'DESC';
 
     // Webhook'ları getir
     const qb = this.webhookRepository.createQueryBuilder('wh')
+      .leftJoin('companies', 'c', 'c.airwallex_account_id = wh.accountId')
       .orderBy(`wh.${orderBy}`, order)
       .skip(skip)
       .take(limit);
 
     if (query.webhookName) qb.andWhere('wh.webhookName = :webhookName', { webhookName: query.webhookName });
     if (query.accountId) qb.andWhere('wh.accountId = :accountId', { accountId: query.accountId });
+    
+    // Search functionality
+    if (query.search && query.search.trim()) {
+      const searchTerm = `%${query.search.trim()}%`;
+      qb.andWhere(
+        '(wh.webhookName ILIKE :search OR wh.accountId ILIKE :search OR wh.webhookId ILIKE :search OR wh.data_json::text ILIKE :search OR wh.data_json->>\'connected_account_id\' ILIKE :search OR wh.data_json->>\'connected_account_name\' ILIKE :search OR wh.data_json->>\'connected_account_nick_name\' ILIKE :search OR c.name ILIKE :search OR c.airwallex_account_id ILIKE :search)',
+        { search: searchTerm }
+      );
+    }
 
     const [rows, total] = await qb.getManyAndCount();
 
@@ -156,10 +180,7 @@ export class WebhookService {
       webhookName: webhook.webhookName,
       receivedAt: webhook.receivedAt,
       updatedAt: webhook.updatedAt,
-      parsedData: this.webhookDataParserService.parseWebhookData(
-        webhook.webhookName,
-        webhook.dataJson
-      )
+      parsedData: webhook.dataJson // Raw data kullan
     }));
   }
 
@@ -187,10 +208,7 @@ export class WebhookService {
       webhookName: webhook.webhookName,
       receivedAt: webhook.receivedAt,
       updatedAt: webhook.updatedAt,
-      parsedData: this.webhookDataParserService.parseWebhookData(
-        webhook.webhookName,
-        webhook.dataJson
-      )
+      parsedData: webhook.dataJson // Raw data kullan
     }));
 
     return {
@@ -219,10 +237,7 @@ export class WebhookService {
       webhookName: webhook.webhookName,
       receivedAt: webhook.receivedAt,
       updatedAt: webhook.updatedAt,
-      parsedData: this.webhookDataParserService.parseWebhookData(
-        webhook.webhookName,
-        webhook.dataJson
-      )
+      parsedData: webhook.dataJson // Raw data kullan
     };
   }
 
@@ -240,10 +255,7 @@ export class WebhookService {
       webhookName: webhook.webhookName,
       receivedAt: webhook.receivedAt,
       updatedAt: webhook.updatedAt,
-      parsedData: this.webhookDataParserService.parseWebhookData(
-        webhook.webhookName,
-        webhook.dataJson
-      )
+      parsedData: webhook.dataJson // Raw data kullan
     }));
   }
 
@@ -325,8 +337,8 @@ export class WebhookService {
       const recipientEmails = activeUsers.map(user => user.email);
 
       // Template'i render et
-      let subject = this.generateWebhookSubject(webhook.webhookName);
       let htmlContent: string;
+      let subject = `Webhook Notification: ${webhook.webhookName}`; // Default subject
       
       try {
         const rendered = await this.templateService.renderTemplateByEvent(
@@ -374,19 +386,6 @@ export class WebhookService {
     }
   }
 
-  private generateWebhookSubject(webhookName: string): string {
-    const eventMap: { [key: string]: string } = {
-      'payout.transfer.funding.funded': 'Transfer Funded',
-      'payout.transfer.settled': 'Transfer Settled',
-      'payout.transfer.failed': 'Transfer Failed',
-      'conversion.settled': 'Conversion Settled',
-      'conversion.completed': 'Conversion Completed',
-      'account.activated': 'Account Activated',
-      'account.deactivated': 'Account Deactivated'
-    };
-    
-    return eventMap[webhookName] || `Webhook: ${webhookName}`;
-  }
 
   async previewWebhookEmail(webhookId: number): Promise<BaseApiResponse<{ subject: string; html: string; company: any; recipients: string[] }>> {
     try {
@@ -403,10 +402,10 @@ export class WebhookService {
           loading: false
         };
       }
-
+console.log('webhook', webhook);
       // Company'yi bul (account ID ile)
       const company = await this.companiesService.findByAirwallexAccountId(webhook.accountId);
-      
+      console.log('company', company);
       if (!company) {
         return {
           success: false,
@@ -417,8 +416,8 @@ export class WebhookService {
       }
 
       // Template'i render et
-      let subject = this.generateWebhookSubject(webhook.webhookName);
       let htmlContent: string;
+      let subject = `Webhook Notification: ${webhook.webhookName}`; // Default subject
       
       try {
         const rendered = await this.templateService.renderTemplateByEvent(
@@ -428,6 +427,7 @@ export class WebhookService {
           webhook.dataJson,
         );
         subject = rendered.subject || subject;
+        console.log('subject', subject);
         htmlContent = rendered.html;
         
         // Override kontrolü - webhook'ta override varsa kullan, yoksa template'den al

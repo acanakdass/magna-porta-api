@@ -260,9 +260,16 @@ export class WebhookTemplateService {
 
   async renderTemplateByEvent(eventName: string, channel: WebhookTemplate['channel'] = 'email', locale = 'en', rawData: any = {}): Promise<{ subject: string; html: string }> {
     const eventType = await this.eventTypeRepo.findOne({ where: { eventName } });
-    if (!eventType) throw new NotFoundException('Event type not found');
+    if (!eventType) {
+      // Fallback: Event type not found, use default template
+      return this.generateDefaultFallbackTemplate(eventName, rawData);
+    }
+    
     const tpl = await this.templateRepo.findOne({ where: { eventType: { id: eventType.id }, channel, locale }, relations: ['eventType'] });
-    if (!tpl) throw new NotFoundException('Template not found for given eventName/channel/locale');
+    if (!tpl) {
+      // Fallback: Template not found, use default template
+      return this.generateDefaultFallbackTemplate(eventName, rawData);
+    }
 
     // Raw data'yı direkt kullan, parse etme
     const parsed = rawData;
@@ -287,6 +294,122 @@ export class WebhookTemplateService {
       </div>
     `).join('');
     const html = `<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class=\"container\"><div class=\"header\"><div style=\"margin-bottom:16px;text-align:center;\"><img src=\"${this.LOGO_URL}\" alt=\"Magna Porta\" style=\"max-width:150px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));\"/></div><h1 style=\"color:${mainColor};text-align:left;font-size:26px;font-weight:600;line-height:1.3;margin-bottom:20px;\">${header}</h1>${sub1?`<p style=\"color:#6c757d;margin-top:0;text-align:left;font-size:16px;margin-bottom:16px;\">${sub1}</p>`:''}${sub2?`<p style=\"color:#6c757d;margin-top:0;font-size:15px;text-align:left;line-height:1.6;\">${sub2}</p>`:''}</div><div class=\"content\">${bodyHtml}${rows.length?`<div class=\"summary-box\">${rowsHtml}</div>`:''}</div><div class=\"footer\"><p class=\"footer-text\">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+    return { subject, html };
+  }
+
+  /**
+   * Generate a beautiful default template when no template exists for the webhook
+   */
+  private generateDefaultFallbackTemplate(eventName: string, rawData: any): { subject: string; html: string } {
+    const mainColor = '#667eea';
+    const eventDisplayName = eventName.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    // Extract common fields from data
+    const rows: Array<{ key: string; value: string }> = [];
+    
+    // Extract key information from rawData
+    if (rawData) {
+      // Status
+      if (rawData.status) {
+        rows.push({ key: 'Status', value: String(rawData.status) });
+      }
+      
+      // Amounts and currencies
+      if (rawData.amount_beneficiary_receives || rawData.amount_payer_pays) {
+        const amount = rawData.amount_beneficiary_receives || rawData.amount_payer_pays;
+        const currency = rawData.transfer_currency || rawData.currency || rawData.buy_currency || rawData.sell_currency || 'USD';
+        rows.push({ 
+          key: 'Amount', 
+          value: `${this.formatMoneyAmount(amount)} ${currency}` 
+        });
+      }
+      
+      // Reference IDs
+      if (rawData.short_reference_id) {
+        rows.push({ key: 'Reference ID', value: String(rawData.short_reference_id) });
+      }
+      if (rawData.request_id) {
+        rows.push({ key: 'Request ID', value: String(rawData.request_id) });
+      }
+      if (rawData.id) {
+        rows.push({ key: 'Transaction ID', value: String(rawData.id) });
+      }
+      
+      // Dates
+      if (rawData.transfer_date) {
+        rows.push({ key: 'Transfer Date', value: String(rawData.transfer_date) });
+      }
+      if (rawData.conversion_date) {
+        rows.push({ key: 'Conversion Date', value: String(rawData.conversion_date) });
+      }
+      if (rawData.created_at) {
+        const date = new Date(rawData.created_at);
+        rows.push({ key: 'Created At', value: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) });
+      }
+      
+      // Account information
+      if (rawData.account_name) {
+        rows.push({ key: 'Account Name', value: String(rawData.account_name) });
+      }
+      if (rawData.accountId || rawData.account_id) {
+        rows.push({ key: 'Account ID', value: String(rawData.accountId || rawData.account_id) });
+      }
+      
+      // Beneficiary information
+      if (rawData.beneficiary) {
+        if (rawData.beneficiary.bank_details?.account_name) {
+          rows.push({ key: 'Beneficiary', value: String(rawData.beneficiary.bank_details.account_name) });
+        }
+        if (rawData.beneficiary.bank_details?.iban) {
+          rows.push({ key: 'IBAN', value: String(rawData.beneficiary.bank_details.iban) });
+        }
+      }
+      
+      // Payer information
+      if (rawData.payer?.company_name) {
+        rows.push({ key: 'From Company', value: String(rawData.payer.company_name) });
+      }
+      
+      // Currency pair for conversions
+      if (rawData.currency_pair) {
+        rows.push({ key: 'Currency Pair', value: String(rawData.currency_pair) });
+      }
+      if (rawData.client_rate) {
+        rows.push({ key: 'Rate', value: String(rawData.client_rate) });
+      }
+      
+      // Connected account info
+      if (rawData.connected_account_id) {
+        rows.push({ key: 'Connected Account ID', value: String(rawData.connected_account_id) });
+      }
+      if (rawData.connected_account_name) {
+        rows.push({ key: 'Connected Account Name', value: String(rawData.connected_account_name) });
+      }
+    }
+    
+    // If no rows found, add basic info
+    if (rows.length === 0) {
+      rows.push({ key: 'Event Type', value: eventDisplayName });
+      if (rawData && typeof rawData === 'object') {
+        rows.push({ key: 'Data', value: 'Webhook data received successfully' });
+      }
+    }
+    
+    const rowsHtml = rows.map(r => `
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 13px; color: #6c757d; font-weight: 500; margin-bottom: 2px;">${r.key}</div>
+        <div style="font-size: 15px; color: #333; font-weight: 600;">${r.value}</div>
+      </div>
+    `).join('');
+    
+    const subject = `Webhook Notification: ${eventDisplayName}`;
+    const header = `Webhook Notification: ${eventDisplayName}`;
+    const subtext = 'A new webhook event has been received. Please review the details below.';
+    
+    const baseCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f8f9fa;color:#333;line-height:1.6}.container{max-width:600px;margin:0 auto;background-color:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);overflow:hidden}.header{padding:30px;text-align:left;background:transparent}.content{padding:20px 30px 30px 30px}.footer{background-color:#f8f9fa;padding:20px 30px;text-align:center;border-top:1px solid #e9ecef}.footer-text{font-size:12px;color:#6c757d}.summary-box{background:transparent;border-radius:8px;padding:15px;border:1px solid #e9ecef;margin-top:0}.table{width:100%;border-collapse:collapse;margin-top:10px}.table td{padding:10px 12px;border-bottom:1px solid #e9ecef;font-size:14px}.kv-label{font-size:13px;color:#6c757d;font-weight:500}.kv-value{font-size:14px;color:#333;font-weight:600;text-align:right}`;
+    
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject}</title><style>${baseCss}</style></head><body><div class="container"><div class="header"><div style="margin-bottom:16px;text-align:center;"><img src="${this.LOGO_URL}" alt="Magna Porta" style="max-width:150px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));"/></div><h1 style="color:${mainColor};text-align:left;font-size:26px;font-weight:600;line-height:1.3;margin-bottom:20px;">${header}</h1><p style="color:#6c757d;margin-top:0;text-align:left;font-size:16px;margin-bottom:16px;">${subtext}</p></div><div class="content"><div class="summary-box">${rowsHtml}</div></div><div class="footer"><p class="footer-text">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+    
     return { subject, html };
   }
 }

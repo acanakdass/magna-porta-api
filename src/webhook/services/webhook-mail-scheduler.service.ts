@@ -31,9 +31,16 @@ export class WebhookMailSchedulerService {
   /**
    * Her dakika çalışır ve mail gönderilmemiş webhook'ları kontrol eder
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_SECONDS)
   async processUnsentWebhooks() {
     try {
+      // Otomatik mail gönderimi kontrolü
+      const isAutoMailEnabled = this.isAutoMailEnabled();
+      if (!isAutoMailEnabled) {
+        this.logger.debug('Otomatik mail gönderimi devre dışı (IS_AUTO_MAIL_SENT=false)');
+        return;
+      }
+
       this.logger.log('Webhook mail kontrolü başlatıldı...');
       
       // Mail gönderilmemiş webhook'ları getir
@@ -55,6 +62,15 @@ export class WebhookMailSchedulerService {
     } catch (error) {
       this.logger.error('Webhook mail işlemi sırasında hata:', error.message);
     }
+  }
+
+  /**
+   * Otomatik mail gönderiminin aktif olup olmadığını kontrol eder
+   */
+  private isAutoMailEnabled(): boolean {
+    const enabled = process.env.IS_AUTO_MAIL_SENT;
+    if (!enabled) return false;
+    return enabled.toLowerCase() === 'true' || enabled === '1' || enabled.toLowerCase() === 'yes' || enabled.toLowerCase() === 'on';
   }
 
   /**

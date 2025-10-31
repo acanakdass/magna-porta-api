@@ -31,7 +31,7 @@ export class WebhookMailSchedulerService {
   /**
    * Her dakika çalışır ve mail gönderilmemiş webhook'ları kontrol eder
    */
-  //@Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE)
   async processUnsentWebhooks() {
     try {
       this.logger.log('Webhook mail kontrolü başlatıldı...');
@@ -105,12 +105,11 @@ export class WebhookMailSchedulerService {
           'email',
           'en',
           webhook.dataJson,
+          webhook.overriddenSubtext1,
+          webhook.overriddenSubtext2,
         );
         templateSubject = rendered.subject || subject;
         htmlContent = rendered.html;
-        
-        // Override kontrolü - webhook'ta override varsa kullan, yoksa template'den al
-        htmlContent = this.applySubtextOverrides(htmlContent, webhook.overriddenSubtext1, webhook.overriddenSubtext2);
       } catch {
         htmlContent = await this.generateWebhookEmailContent(webhook, company);
       }
@@ -354,7 +353,9 @@ export class WebhookMailSchedulerService {
         webhook.webhookName,
         'email',
         'en',
-        webhook.dataJson
+        webhook.dataJson,
+        webhook.overriddenSubtext1,
+        webhook.overriddenSubtext2
       );
       return rendered.html;
     } catch (error) {
@@ -625,7 +626,9 @@ export class WebhookMailSchedulerService {
         webhook.webhookName,
         'email',
         'en',
-        webhook.dataJson
+        webhook.dataJson,
+        webhook.overriddenSubtext1,
+        webhook.overriddenSubtext2
       );
       return rendered.html;
     } catch (error) {

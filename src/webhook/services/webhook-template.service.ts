@@ -232,14 +232,20 @@ export class WebhookTemplateService {
     });
   }
 
-  async renderTemplateById(id: number, data: any = {}): Promise<{ subject: string; html: string }> {
+  async renderTemplateById(id: number, data: any = {}, overriddenSubtext1?: string, overriddenSubtext2?: string): Promise<{ subject: string; html: string }> {
     const tpl = await this.templateRepo.findOne({ where: { id }, relations: ['eventType'] });
     if (!tpl) throw new NotFoundException('Template not found');
 
     const subject = this.resolvePlaceholders(tpl.subject || '', data);
     const header = this.resolvePlaceholders(tpl.header || '', data);
-    const sub1 = this.resolvePlaceholders(tpl.subtext1 || '', data);
-    const sub2 = this.resolvePlaceholders(tpl.subtext2 || '', data);
+    // Use override if provided, otherwise use template's subtext1
+    const sub1 = (overriddenSubtext1 && overriddenSubtext1.trim()) 
+      ? this.resolvePlaceholders(overriddenSubtext1, data)
+      : this.resolvePlaceholders(tpl.subtext1 || '', data);
+    // Use override if provided, otherwise use template's subtext2
+    const sub2 = (overriddenSubtext2 && overriddenSubtext2.trim()) 
+      ? this.resolvePlaceholders(overriddenSubtext2, data)
+      : this.resolvePlaceholders(tpl.subtext2 || '', data);
     const bodyHtml = this.resolvePlaceholders(tpl.body || '', data);
     const mainColor = (tpl.mainColor && tpl.mainColor.trim()) || '#667eea';
 
@@ -262,7 +268,7 @@ export class WebhookTemplateService {
     return { subject, html };
   }
 
-  async renderTemplateByEvent(eventName: string, channel: WebhookTemplate['channel'] = 'email', locale = 'en', rawData: any = {}): Promise<{ subject: string; html: string }> {
+  async renderTemplateByEvent(eventName: string, channel: WebhookTemplate['channel'] = 'email', locale = 'en', rawData: any = {}, overriddenSubtext1?: string, overriddenSubtext2?: string): Promise<{ subject: string; html: string }> {
     // 1) Try custom hook first
     const custom = this.renderCustomIfAvailable(eventName, rawData, locale);
     if (custom) return custom;
@@ -286,8 +292,14 @@ export class WebhookTemplateService {
     // Duplicate minimal part to avoid extra query
     const subject = this.resolvePlaceholders(tpl.subject || '', parsed);
     const header = this.resolvePlaceholders(tpl.header || '', parsed);
-    const sub1 = this.resolvePlaceholders(tpl.subtext1 || '', parsed);
-    const sub2 = this.resolvePlaceholders(tpl.subtext2 || '', parsed);
+    // Use override if provided, otherwise use template's subtext1
+    const sub1 = (overriddenSubtext1 && overriddenSubtext1.trim()) 
+      ? this.resolvePlaceholders(overriddenSubtext1, parsed)
+      : this.resolvePlaceholders(tpl.subtext1 || '', parsed);
+    // Use override if provided, otherwise use template's subtext2
+    const sub2 = (overriddenSubtext2 && overriddenSubtext2.trim()) 
+      ? this.resolvePlaceholders(overriddenSubtext2, parsed)
+      : this.resolvePlaceholders(tpl.subtext2 || '', parsed);
     const bodyHtml = this.resolvePlaceholders(tpl.body || '', parsed);
     const mainColor = (tpl.mainColor && tpl.mainColor.trim()) || '#667eea';
     const rows = (tpl.tableRowsJson || []).map(r => ({

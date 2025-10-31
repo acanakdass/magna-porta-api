@@ -28,7 +28,7 @@ export class UsersService extends BaseService<UserEntity> {
 
         return await this.findAllWithPagination({
             ...paginationDto,
-            select: ['id', 'firstName', 'lastName', 'email', 'isActive', 'isVerified', 'createdAt'],
+            select: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'isActive', 'isVerified', 'createdAt'],
             relations: ['role', 'company', 'userType'],
             where,
         });
@@ -37,7 +37,7 @@ export class UsersService extends BaseService<UserEntity> {
     async listUsersByUserType(userTypeId: number, paginationDto: PaginationDto): Promise<PaginatedResponseDto<UserEntity>> {
         return await this.findAllWithPagination({
             ...paginationDto,
-            select: ['id', 'firstName', 'lastName', 'email', 'isActive', 'isVerified', 'createdAt'],
+            select: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'isActive', 'isVerified', 'createdAt'],
             relations: ['role','company', 'userType'],
             where: { isDeleted: false, userTypeId },
         });
@@ -54,12 +54,16 @@ export class UsersService extends BaseService<UserEntity> {
         //     throw new ConflictException('Phone Number already exists');
         // }
         //
-        await ValidationHelper.checkDuplicates(this.userRepository, {
+        const duplicateCheckFields: any = {
             email: createUserDto.email,
-            phoneNumber: createUserDto.phoneNumber,
-        });
+        };
+        
+        if (createUserDto.phoneNumber && createUserDto.phoneNumber.trim()) {
+            duplicateCheckFields.phoneNumber = createUserDto.phoneNumber;
+        }
+        
+        await ValidationHelper.checkDuplicates(this.userRepository, duplicateCheckFields);
 
-        console.log(createUserDto)
         const userEntity = Object.assign(new UserEntity(), createUserDto);
         userEntity.isVerified = false;
         console.log(userEntity)
@@ -140,6 +144,15 @@ export class UsersService extends BaseService<UserEntity> {
             const existingUser = await this.findByEmail(updateUserDto.email);
             if (existingUser) {
                 throw new ConflictException('Email already exists');
+            }
+        }
+
+        if (updateUserDto.phoneNumber && updateUserDto.phoneNumber !== user.phoneNumber) {
+            const existingUserWithPhone = await this.userRepository.findOne({
+                where: { phoneNumber: updateUserDto.phoneNumber, isDeleted: false }
+            });
+            if (existingUserWithPhone && existingUserWithPhone.id !== user.id) {
+                throw new ConflictException('Phone number already exists');
             }
         }
 

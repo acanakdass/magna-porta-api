@@ -91,6 +91,15 @@ export class AdminService {
         }
       }
 
+      if (updateUserDto.phoneNumber && updateUserDto.phoneNumber !== user.phoneNumber) {
+        const existingUserWithPhone = await this.userRepository.findOne({
+          where: { phoneNumber: updateUserDto.phoneNumber, isDeleted: false }
+        });
+        if (existingUserWithPhone && existingUserWithPhone.id !== user.id) {
+          throw new BadRequestException('Phone number already exists');
+        }
+      }
+
       Object.assign(user, updateUserDto);
       const updatedUser = await this.userRepository.save(user);
       

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { Webhook } from '../entities/webhook.entity';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { WebhookMailSchedulerService } from './services/webhook-mail-scheduler.service';
@@ -263,8 +263,15 @@ export class WebhookService {
    * Mail gönderilmemiş webhook'ları getirir
    */
   async findUnsentMailWebhooks(): Promise<Webhook[]> {
+    // Son bir saat içinde oluşturulmuş webhook'ları getir
+    const oneHourAgo = new Date();
+    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+    
     return await this.webhookRepository.find({
-      where: { isMailSent: false },
+      where: { 
+        isMailSent: false,
+        receivedAt: MoreThanOrEqual(oneHourAgo),
+      },
       order: { receivedAt: 'ASC' },
     });
   }
@@ -286,6 +293,8 @@ export class WebhookService {
       'email',
       locale,
       webhook.dataJson,
+      webhook.overriddenSubtext1,
+      webhook.overriddenSubtext2,
     );
 
     const recipients = Array.isArray(to) ? to : [to];
@@ -346,12 +355,11 @@ export class WebhookService {
           'email',
           'en',
           webhook.dataJson,
+          webhook.overriddenSubtext1,
+          webhook.overriddenSubtext2,
         );
         subject = rendered.subject || subject;
         htmlContent = rendered.html;
-        
-        // Override kontrolü - webhook'ta override varsa kullan, yoksa template'den al
-        htmlContent = this.applySubtextOverrides(htmlContent, webhook.overriddenSubtext1, webhook.overriddenSubtext2);
       } catch (error) {
         // Fallback content
         htmlContent = this.generateWebhookEmailContent(webhook, company);
@@ -425,13 +433,11 @@ console.log('webhook', webhook);
           'email',
           'en',
           webhook.dataJson,
+          webhook.overriddenSubtext1,
+          webhook.overriddenSubtext2,
         );
         subject = rendered.subject || subject;
-        console.log('subject', subject);
         htmlContent = rendered.html;
-        
-        // Override kontrolü - webhook'ta override varsa kullan, yoksa template'den al
-        htmlContent = this.applySubtextOverrides(htmlContent, webhook.overriddenSubtext1, webhook.overriddenSubtext2);
       } catch (error) {
         // Fallback content
         htmlContent = this.generateWebhookEmailContent(webhook, company);

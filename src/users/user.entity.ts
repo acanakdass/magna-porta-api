@@ -22,7 +22,7 @@ export class UserEntity extends BaseEntity {
 
   @IsOptional()
   @IsString()
-  @Column({ nullable: false })
+  @Column({ nullable: true })
   phoneNumber?: string;
 
 

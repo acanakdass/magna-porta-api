@@ -188,7 +188,7 @@ export class WebhookController {
     const candidates = await this.webhookService.findByWebhookName(tpl.eventType.eventName);
     if (!candidates || candidates.length === 0) return { success: false, message: 'No webhook data found for this event type' } as any;
     const random = candidates[Math.floor(Math.random() * candidates.length)];
-    const rendered = await this.webhookTemplateService.renderTemplateByEvent(tpl.eventType.eventName, tpl.channel as any, tpl.locale, random.dataJson);
+    const rendered = await this.webhookTemplateService.renderTemplateByEvent(tpl.eventType.eventName, tpl.channel as any, tpl.locale, random.dataJson, random.overriddenSubtext1, random.overriddenSubtext2);
     return { success: true, message: 'Preview generated', data: rendered };
   }
 

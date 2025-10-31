@@ -3,6 +3,7 @@ import {RoleEntity} from "../role/role.entity";
 import {IsNotEmpty, IsOptional, IsString} from 'class-validator';
 import {BaseEntity} from "../common/entities/base.entity";
 import {CompanyEntity} from "../company/company.entity";
+import {UserTypeEntity} from "./user-type.entity";
 
 
 @Entity('users')
@@ -51,6 +52,13 @@ export class UserEntity extends BaseEntity {
   @Column({ nullable: true })
   @IsNotEmpty()
   companyId: number;
+
+  @ManyToOne(() => UserTypeEntity, (userType) => userType.users, { nullable: true })
+  @JoinColumn({ name: 'user_type_id' })
+  userType?: UserTypeEntity;
+
+  @Column({ nullable: true, name: 'user_type_id' })
+  userTypeId?: number;
 
   @Column({ default: false })
   @IsNotEmpty()

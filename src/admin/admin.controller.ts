@@ -9,6 +9,7 @@ import { PaginationDto } from '../common/models/pagination-dto';
 import { BaseApiResponse } from '../common/dto/api-response-dto';
 import { PaginatedResponseDto } from '../common/models/pagination-dto';
 import { UserEntity } from '../users/user.entity';
+import { UserTypeEntity } from '../users/user-type.entity';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('Admin - User Management')
@@ -28,7 +29,7 @@ export class AdminController {
   @Roles('admin')
   @ApiOperation({ summary: 'Get all users with pagination (Admin only)' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
-  async getAllUsers(@Query() paginationDto: PaginationDto): Promise<BaseApiResponse<PaginatedResponseDto<UserEntity>>> {
+  async getAllUsers(@Query() paginationDto: PaginationDto & { userTypeId?: number }): Promise<BaseApiResponse<PaginatedResponseDto<UserEntity>>> {
     return this.adminService.getAllUsers(paginationDto);
   }
 
@@ -96,5 +97,13 @@ export class AdminController {
   @ApiResponse({ status: 400, description: 'Invalid password format' })
   async resetUserPassword(@Param('id') id: number, @Body() resetPasswordDto: ResetPasswordDto): Promise<BaseApiResponse<{ message: string }>> {
     return this.adminService.resetUserPassword(id, resetPasswordDto.newPassword);
+  }
+
+  @Get('users/types/list')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get all active user types (for dropdown/select) - Admin only' })
+  @ApiResponse({ status: 200, description: 'User types retrieved successfully' })
+  async getUserTypes(): Promise<BaseApiResponse<UserTypeEntity[]>> {
+    return this.adminService.getUserTypes();
   }
 }

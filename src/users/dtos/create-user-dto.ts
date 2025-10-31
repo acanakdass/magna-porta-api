@@ -65,4 +65,12 @@ export class CreateUserDto {
     @IsNumber()
     @IsOptional()
     companyId?: number;
+
+    @ApiPropertyOptional({
+        description: 'User Type Id',
+        example: 1
+    })
+    @IsNumber()
+    @IsOptional()
+    userTypeId?: number;
 }

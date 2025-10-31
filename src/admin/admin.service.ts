@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
+import { UserTypeService } from '../users/user-type.service';
 import { CreateUserDto } from '../users/dtos/create-user-dto';
 import { UpdateUserDto } from '../users/dtos/update-user-dto';
 import { PaginationDto } from '../common/models/pagination-dto';
@@ -16,6 +17,7 @@ export class AdminService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private readonly usersService: UsersService,
+    private readonly userTypeService: UserTypeService,
   ) {}
 
   getDashboardStats() {
@@ -26,7 +28,7 @@ export class AdminService {
     };
   }
 
-  async getAllUsers(paginationDto: PaginationDto): Promise<BaseApiResponse<PaginatedResponseDto<UserEntity>>> {
+  async getAllUsers(paginationDto: PaginationDto & { userTypeId?: number }): Promise<BaseApiResponse<PaginatedResponseDto<UserEntity>>> {
     try {
       const result = await this.usersService.listUsersPaginated(paginationDto);
       return {
@@ -182,6 +184,19 @@ export class AdminService {
         throw error;
       }
       throw new BadRequestException('Failed to reset password');
+    }
+  }
+
+  async getUserTypes(): Promise<BaseApiResponse<any[]>> {
+    try {
+      const userTypes = await this.userTypeService.findAll();
+      return {
+        success: true,
+        message: 'User types retrieved successfully',
+        data: userTypes,
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to retrieve user types');
     }
   }
 }

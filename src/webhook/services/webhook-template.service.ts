@@ -12,6 +12,8 @@ import { UpsertTemplateDto } from '../dto/upsert-template.dto';
 @Injectable()
 export class WebhookTemplateService {
   private readonly LOGO_URL: string;
+  // Registry for custom, highly-styled renderers by event name
+  private readonly customRenderers: Record<string, (data: any, locale?: string) => { subject: string; html: string }> = {};
 
   constructor(
     @InjectRepository(WebhookTemplate)
@@ -21,6 +23,8 @@ export class WebhookTemplateService {
     private readonly configService: ConfigService,
   ) {
     this.LOGO_URL = this.configService.get('LOGO_URL', 'http://localhost:3001/assets/magnaporta-logos/logo_magna_porta.png');
+    // Register custom renderers here
+    this.customRenderers['account.active'] = (data: any, locale?: string) => this.renderAccountActiveCustom(data, locale);
   }
 
   async ensureEventType(eventName: string, description?: string): Promise<WebhookEventType> {
@@ -253,12 +257,16 @@ export class WebhookTemplateService {
       </div>
     `).join('');
 
-    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class="container"><div class="header"><div style="margin-bottom:16px;text-align:center;"><img src="${this.LOGO_URL}" alt="Magna Porta" style="max-width:150px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));"/></div><h1 style="color:${mainColor};text-align:left;font-size:16px;font-weight:600;line-height:1.3;margin-bottom:20px;">${header}</h1>${sub1?`<p style="color:#6c757d;margin-top:0;text-align:left;font-size:13px;margin-bottom:16px;">${sub1}</p>`:''}${sub2?`<p style="color:#6c757d;margin-top:0;font-size:12px;text-align:left;line-height:1.8;">${sub2}</p>`:''}</div><div class="content">${bodyHtml}${rows.length?`<div class="summary-box">${rowsHtml}</div>`:''}</div><div class="footer"><p class="footer-text">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class="container"><div class="header"><div style="margin-bottom:16px;text-align:left;"><img src="${this.LOGO_URL}" alt="Magna Porta" style="max-width:220px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));"/></div><h1 style="color:${mainColor};text-align:left;font-size:16px;font-weight:600;line-height:1.3;margin-bottom:20px;">${header}</h1>${sub1?`<p style="color:#6c757d;margin-top:0;text-align:left;font-size:13px;margin-bottom:16px;">${sub1}</p>`:''}${sub2?`<p style="color:#6c757d;margin-top:0;font-size:12px;text-align:left;line-height:1.8;">${sub2}</p>`:''}</div><div class="content">${bodyHtml}${rows.length?`<div class="summary-box">${rowsHtml}</div>`:''}</div><div class="footer"><p class="footer-text">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
 
     return { subject, html };
   }
 
   async renderTemplateByEvent(eventName: string, channel: WebhookTemplate['channel'] = 'email', locale = 'en', rawData: any = {}): Promise<{ subject: string; html: string }> {
+    // 1) Try custom hook first
+    const custom = this.renderCustomIfAvailable(eventName, rawData, locale);
+    if (custom) return custom;
+
     const eventType = await this.eventTypeRepo.findOne({ where: { eventName } });
     if (!eventType) {
       // Fallback: Event type not found, use default template
@@ -293,7 +301,39 @@ export class WebhookTemplateService {
         <div style=\"font-size: 15px; color: #333; font-weight: 600;\">${r.value}</div>
       </div>
     `).join('');
-    const html = `<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class=\"container\"><div class=\"header\"><div style=\"margin-bottom:16px;text-align:center;\"><img src=\"${this.LOGO_URL}\" alt=\"Magna Porta\" style=\"max-width:150px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));\"/></div><h1 style=\"color:${mainColor};text-align:left;font-size:26px;font-weight:600;line-height:1.3;margin-bottom:20px;\">${header}</h1>${sub1?`<p style=\"color:#6c757d;margin-top:0;text-align:left;font-size:16px;margin-bottom:16px;\">${sub1}</p>`:''}${sub2?`<p style=\"color:#6c757d;margin-top:0;font-size:15px;text-align:left;line-height:1.6;\">${sub2}</p>`:''}</div><div class=\"content\">${bodyHtml}${rows.length?`<div class=\"summary-box\">${rowsHtml}</div>`:''}</div><div class=\"footer\"><p class=\"footer-text\">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+    const html = `<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"/><title>${subject || 'Preview'}</title><style>${baseCss}</style></head><body><div class=\"container\"><div class=\"header\"><div style=\"margin-bottom:16px;text-align:left;\"><img src=\"${this.LOGO_URL}\" alt=\"Magna Porta\" style=\"max-width:220px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));\"/></div><h1 style=\"color:${mainColor};text-align:left;font-size:26px;font-weight:600;line-height:1.3;margin-bottom:20px;\">${header}</h1>${sub1?`<p style=\"color:#6c757d;margin-top:0;text-align:left;font-size:16px;margin-bottom:16px;\">${sub1}</p>`:''}${sub2?`<p style=\"color:#6c757d;margin-top:0;font-size:15px;text-align:left;line-height:1.6;\">${sub2}</p>`:''}</div><div class=\"content\">${bodyHtml}${rows.length?`<div class=\"summary-box\">${rowsHtml}</div>`:''}</div><div class=\"footer\"><p class=\"footer-text\">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+    return { subject, html };
+  }
+
+  // Return custom-rendered email if a custom hook exists for the event
+  private renderCustomIfAvailable(eventName: string, data: any, locale = 'en'): { subject: string; html: string } | null {
+    const renderer = this.customRenderers[eventName];
+    if (!renderer) return null;
+    try {
+      return renderer(data, locale);
+    } catch (_e) {
+      // Fall back gracefully if custom renderer fails
+      return null;
+    }
+  }
+
+  // Custom, highly-styled template for account.active
+  private renderAccountActiveCustom(data: any, _locale = 'en'): { subject: string; html: string } {
+    const subject = 'Welcome to borderless business. Your Magna Porta account is now active';
+    const fundingUrl = this.configService.get<string>('FUNDING_URL') || 'https://app.magna-porta.com';
+    const baseCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f8f9fa;color:#333;line-height:1.6}.container{max-width:640px;margin:0 auto;background-color:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);overflow:hidden}.section{padding:28px 32px}.title{font-size:22px;font-weight:800;color:#1f2937;margin:12px 0 8px 0}.muted{color:#6b7280}.center{text-align:center}`;
+
+    // Logo sola yaslı, konfeti görseli kaldırıldı
+    const headerSection = `<div style=\"background:#fff;padding:28px 32px 20px 32px;\"><div style=\"text-align:left;margin-bottom:20px;\"><img src=\"${this.LOGO_URL}\" alt=\"Magna Porta\" style=\"height:48px;object-fit:contain\"/></div></div>`;
+
+    const intro = `<div class=\"section\"><h1 class=\"title\">${subject}</h1><p class=\"muted\">Congratulations, you’re in. Your business is now verified and your account is ready to use.</p></div>`;
+
+    // Progress bar with connecting lines between steps
+    const progress = `<div class="section"><div style="border:1px solid #e5e7eb;border-radius:10px;padding:24px 20px"><div style="display:flex;align-items:flex-start;position:relative;justify-content:space-between"><div style="flex:1;text-align:center;position:relative"><div style="width:36px;height:36px;border-radius:18px;border:2px solid #10b981;background:#10b981;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-bottom:8px;position:relative;z-index:2">✓</div><div style="font-size:13px;color:#111827">Sign up</div><div style="position:absolute;left:50%;top:18px;width:calc(100% - 18px);height:2px;background:#10b981;z-index:1;transform:translateX(18px)"></div></div><div style="flex:1;text-align:center;position:relative"><div style="width:36px;height:36px;border-radius:18px;border:2px solid #10b981;background:#10b981;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-bottom:8px;position:relative;z-index:2">✓</div><div style="font-size:13px;color:#111827">Verify your business</div><div style="position:absolute;left:50%;top:18px;width:calc(100% - 18px);height:2px;background:#e5e7eb;z-index:1;transform:translateX(18px)"></div></div><div style="flex:1;text-align:center;position:relative"><div style="width:36px;height:36px;border-radius:18px;border:2px solid #fe793f;background:#fe793f;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-bottom:8px;position:relative;z-index:2">$</div><div style="font-size:13px;color:#111827">Add funds</div><div style="position:absolute;left:50%;top:18px;width:calc(100% - 18px);height:2px;background:#e5e7eb;z-index:1;transform:translateX(18px)"></div></div><div style="flex:1;text-align:center;position:relative;opacity:0.5"><div style="width:36px;height:36px;border-radius:18px;border:2px solid #d1d5db;display:inline-flex;align-items:center;justify-content:center;color:#9ca3af;font-weight:700;margin-bottom:8px;position:relative;z-index:2">⬤</div><div style="font-size:13px;color:#6b7280">You're up and running</div></div></div></div></div>`;
+
+    const cta = `<div class=\"section center\"><div style=\"font-weight:700;color:#374151;margin-bottom:12px\">Get started by depositing funds</div><a href=\"${fundingUrl}\" style=\"display:inline-block;background:#fe793f;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700\">Add funds</a><div style=\"font-size:12px;color:#6b7280;margin-top:12px\">Funds are typically available same business day.</div></div>`;
+
+    const html = `<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"/><title>${subject}</title><style>${baseCss}</style></head><body><div class=\"container\">${headerSection}${intro}${progress}${cta}</div></body></html>`;
     return { subject, html };
   }
 
@@ -408,7 +448,7 @@ export class WebhookTemplateService {
     
     const baseCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f8f9fa;color:#333;line-height:1.6}.container{max-width:600px;margin:0 auto;background-color:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);overflow:hidden}.header{padding:30px;text-align:left;background:transparent}.content{padding:20px 30px 30px 30px}.footer{background-color:#f8f9fa;padding:20px 30px;text-align:center;border-top:1px solid #e9ecef}.footer-text{font-size:12px;color:#6c757d}.summary-box{background:transparent;border-radius:8px;padding:15px;border:1px solid #e9ecef;margin-top:0}.table{width:100%;border-collapse:collapse;margin-top:10px}.table td{padding:10px 12px;border-bottom:1px solid #e9ecef;font-size:14px}.kv-label{font-size:13px;color:#6c757d;font-weight:500}.kv-value{font-size:14px;color:#333;font-weight:600;text-align:right}`;
     
-    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject}</title><style>${baseCss}</style></head><body><div class="container"><div class="header"><div style="margin-bottom:16px;text-align:center;"><img src="${this.LOGO_URL}" alt="Magna Porta" style="max-width:150px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));"/></div><h1 style="color:${mainColor};text-align:left;font-size:26px;font-weight:600;line-height:1.3;margin-bottom:20px;">${header}</h1><p style="color:#6c757d;margin-top:0;text-align:left;font-size:16px;margin-bottom:16px;">${subtext}</p></div><div class="content"><div class="summary-box">${rowsHtml}</div></div><div class="footer"><p class="footer-text">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject}</title><style>${baseCss}</style></head><body><div class="container"><div class="header"><div style="margin-bottom:16px;text-align:left;"><img src="${this.LOGO_URL}" alt="Magna Porta" style="max-width:220px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));"/></div><h1 style="color:${mainColor};text-align:left;font-size:26px;font-weight:600;line-height:1.3;margin-bottom:20px;">${header}</h1><p style="color:#6c757d;margin-top:0;text-align:left;font-size:16px;margin-bottom:16px;">${subtext}</p></div><div class="content"><div class="summary-box">${rowsHtml}</div></div><div class="footer"><p class="footer-text">This email was sent by Magna Porta. Please do not reply.</p></div></div></body></html>`;
     
     return { subject, html };
   }

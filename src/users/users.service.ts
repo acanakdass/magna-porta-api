@@ -19,12 +19,27 @@ export class UsersService extends BaseService<UserEntity> {
     }
 
 
-    async listUsersPaginated(paginationDto: PaginationDto): Promise<PaginatedResponseDto<UserEntity>> {
+    async listUsersPaginated(paginationDto: PaginationDto & { userTypeId?: number }): Promise<PaginatedResponseDto<UserEntity>> {
+        const where: any = { isDeleted: false };
+        
+        if (paginationDto.userTypeId) {
+            where.userTypeId = paginationDto.userTypeId;
+        }
+
         return await this.findAllWithPagination({
             ...paginationDto,
             select: ['id', 'firstName', 'lastName', 'email', 'isActive', 'isVerified', 'createdAt'],
-            relations: ['role','company'],
-            where: { isDeleted: false },
+            relations: ['role', 'company', 'userType'],
+            where,
+        });
+    }
+
+    async listUsersByUserType(userTypeId: number, paginationDto: PaginationDto): Promise<PaginatedResponseDto<UserEntity>> {
+        return await this.findAllWithPagination({
+            ...paginationDto,
+            select: ['id', 'firstName', 'lastName', 'email', 'isActive', 'isVerified', 'createdAt'],
+            relations: ['role','company', 'userType'],
+            where: { isDeleted: false, userTypeId },
         });
     }
 

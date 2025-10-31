@@ -338,7 +338,7 @@ export class MailController {
         to: ['user@example.com'],
         resetData: {
           userName: 'John Doe',
-          resetLink: 'https://app.magnaporta.com/reset-password?token=abc123',
+          resetLink: 'https://app.magna-porta.com/reset-password?token=abc123',
           expiryTime: '24 hours'
         }
       }

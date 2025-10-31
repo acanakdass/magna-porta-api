@@ -5,6 +5,7 @@ import { AdminController } from './admin.controller';
 import { UserEntity } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
 import { UsersModule } from '../users/users.module';
+import { UserTypeService } from '../users/user-type.service';
 
 @Module({
   imports: [

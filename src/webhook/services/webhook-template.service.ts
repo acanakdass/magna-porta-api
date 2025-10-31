@@ -12,6 +12,7 @@ import { UpsertTemplateDto } from '../dto/upsert-template.dto';
 @Injectable()
 export class WebhookTemplateService {
   private readonly LOGO_URL: string;
+  private readonly PROGRESS_BAR_IMAGE_URL: string;
   // Registry for custom, highly-styled renderers by event name
   private readonly customRenderers: Record<string, (data: any, locale?: string) => { subject: string; html: string }> = {};
 
@@ -23,6 +24,7 @@ export class WebhookTemplateService {
     private readonly configService: ConfigService,
   ) {
     this.LOGO_URL = this.configService.get('LOGO_URL', 'http://localhost:3001/assets/magnaporta-logos/logo_magna_porta.png');
+    this.PROGRESS_BAR_IMAGE_URL = this.configService.get('PROGRESS_BAR_IMAGE_URL', 'http://localhost:3001/assets/progress-bar-account-active.png');
     // Register custom renderers here
     this.customRenderers['account.active'] = (data: any, locale?: string) => this.renderAccountActiveCustom(data, locale);
   }
@@ -333,19 +335,18 @@ export class WebhookTemplateService {
   private renderAccountActiveCustom(data: any, _locale = 'en'): { subject: string; html: string } {
     const subject = 'Welcome to borderless business. Your Magna Porta account is now active';
     const fundingUrl = this.configService.get<string>('FUNDING_URL') || 'https://app.magna-porta.com';
-    const baseCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f8f9fa;color:#333;line-height:1.6}.container{max-width:640px;margin:0 auto;background-color:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);overflow:hidden}.section{padding:28px 32px}.title{font-size:22px;font-weight:800;color:#1f2937;margin:12px 0 8px 0}.muted{color:#6b7280}.center{text-align:center}`;
 
-    // Logo sola yaslı, konfeti görseli kaldırıldı
-    const headerSection = `<div style=\"background:#fff;padding:28px 32px 20px 32px;\"><div style=\"text-align:left;margin-bottom:20px;\"><img src=\"${this.LOGO_URL}\" alt=\"Magna Porta\" style=\"height:48px;object-fit:contain\"/></div></div>`;
+    // Logo sola yaslı, konfeti görseli kaldırıldı - all inline styles
+    const headerSection = `<div style="background:#fff;padding:28px 32px 20px 32px;"><div style="text-align:left;margin-bottom:20px;"><img src="${this.LOGO_URL}" alt="Magna Porta" style="height:48px;object-fit:contain;"/></div></div>`;
 
-    const intro = `<div class=\"section\"><h1 class=\"title\">${subject}</h1><p class=\"muted\">Congratulations, you’re in. Your business is now verified and your account is ready to use.</p></div>`;
+    const intro = `<div style="padding:28px 32px;"><h1 style="font-size:22px;font-weight:800;color:#1f2937;margin:12px 0 8px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">${subject}</h1><p style="color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;margin:0;">Congratulations, you're in. Your business is now verified and your account is ready to use.</p></div>`;
 
-    // Progress bar with connecting lines between steps
-    const progress = `<div class="section"><div style="border:1px solid #e5e7eb;border-radius:10px;padding:24px 20px"><div style="display:flex;align-items:flex-start;position:relative;justify-content:space-between"><div style="flex:1;text-align:center;position:relative"><div style="width:36px;height:36px;border-radius:18px;border:2px solid #10b981;background:#10b981;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-bottom:8px;position:relative;z-index:2">✓</div><div style="font-size:13px;color:#111827">Sign up</div><div style="position:absolute;left:50%;top:18px;width:calc(100% - 18px);height:2px;background:#10b981;z-index:1;transform:translateX(18px)"></div></div><div style="flex:1;text-align:center;position:relative"><div style="width:36px;height:36px;border-radius:18px;border:2px solid #10b981;background:#10b981;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-bottom:8px;position:relative;z-index:2">✓</div><div style="font-size:13px;color:#111827">Verify your business</div><div style="position:absolute;left:50%;top:18px;width:calc(100% - 18px);height:2px;background:#e5e7eb;z-index:1;transform:translateX(18px)"></div></div><div style="flex:1;text-align:center;position:relative"><div style="width:36px;height:36px;border-radius:18px;border:2px solid #fe793f;background:#fe793f;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-bottom:8px;position:relative;z-index:2">$</div><div style="font-size:13px;color:#111827">Add funds</div><div style="position:absolute;left:50%;top:18px;width:calc(100% - 18px);height:2px;background:#e5e7eb;z-index:1;transform:translateX(18px)"></div></div><div style="flex:1;text-align:center;position:relative;opacity:0.5"><div style="width:36px;height:36px;border-radius:18px;border:2px solid #d1d5db;display:inline-flex;align-items:center;justify-content:center;color:#9ca3af;font-weight:700;margin-bottom:8px;position:relative;z-index:2">⬤</div><div style="font-size:13px;color:#6b7280">You're up and running</div></div></div></div></div>`;
+    // Progress bar as image - Email client compatible
+    const progress = `<div style="padding:28px 32px;"><div style="border:1px solid #e5e7eb;border-radius:10px;padding:24px 20px;background-color:#ffffff;text-align:center;"><img src="${this.PROGRESS_BAR_IMAGE_URL}" alt="Progress steps: Sign up, Verify your business, Add funds, You're up and running" style="max-width:100%;height:auto;display:block;margin:0 auto;"/></div></div>`;
 
-    const cta = `<div class=\"section center\"><div style=\"font-weight:700;color:#374151;margin-bottom:12px\">Get started by depositing funds</div><a href=\"${fundingUrl}\" style=\"display:inline-block;background:#fe793f;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700\">Add funds</a><div style=\"font-size:12px;color:#6b7280;margin-top:12px\">Funds are typically available same business day.</div></div>`;
+    const cta = `<div style="padding:28px 32px;text-align:center;"><div style="font-weight:700;color:#374151;margin-bottom:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">Get started by depositing funds</div><a href="${fundingUrl}" style="display:inline-block;background:#fe793f;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">Add funds</a><div style="font-size:12px;color:#6b7280;margin-top:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">Funds are typically available same business day.</div></div>`;
 
-    const html = `<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"/><title>${subject}</title><style>${baseCss}</style></head><body><div class=\"container\">${headerSection}${intro}${progress}${cta}</div></body></html>`;
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>${subject}</title></head><body style="margin:0;padding:0;background-color:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#333;line-height:1.6;"><div style="max-width:640px;margin:0 auto;background-color:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);overflow:hidden;">${headerSection}${intro}${progress}${cta}</div></body></html>`;
     return { subject, html };
   }
 
